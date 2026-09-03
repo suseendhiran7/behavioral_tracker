@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Xylium BF SDK v2 - Test Page</title>
+  <style>
+    body { font-family: sans-serif; max-width: 500px; margin: 40px auto; }
+    input, button { display: block; margin: 10px 0; padding: 8px; width: 100%; box-sizing: border-box; }
+    button { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2>Xylium BF SDK v2 Test</h2>
+  <p>Open DevTools Console. No backend URL is set below (data-api-endpoint=""),
+     so batches just log to console instead of sending — set it to your
+     running gateway (e.g. http://localhost:8080) to actually send data.</p>
+
+  <button onclick="window.XyliumBF.grantConsent()">1. Grant Consent (starts capture + device snapshot)</button>
+
+  <input type="text" id="username" data-bf-field="username" placeholder="Username (type here, watch console)" />
+  <input type="password" id="login-password" data-bf-field="password" placeholder="Password (try browser autofill)" />
+
+  <button onclick="window.XyliumBF.identify('test-user-123')">2. Simulate Login (identify)</button>
+  <button onclick="window.XyliumBF.requestGeo()">Request Geo (opt-in, only if data-capture-geo="true")</button>
+  <button onclick="window.XyliumBF._debugFlushNow()">Force Flush Now</button>
+
+  <p>Type in the fields, move the mouse, wait 6+ seconds idle, then move again —
+     watch for device_snapshot, keytiming, autofill, idle_start/idle_end in the console.</p>
+  <div style="height: 800px; background: linear-gradient(#eee, #ccc);"></div>
+
+  <script src="xylium-bf-v2.js"
+          data-tenant-id="tenant_test001"
+          data-app-id="app_test001"
+          data-api-endpoint=""
+          data-capture-geo="false">
+  </script>
+</body>
+</html>
