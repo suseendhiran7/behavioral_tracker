@@ -1,7 +1,6 @@
 const config = require('./config');
 const EventBatch = require('./models/EventBatch');
 const Session = require('./models/Session');
-const { enqueueForward } = require('./forward/queue');
 
 class BadRequestError extends Error {
   constructor(message) {
@@ -18,10 +17,8 @@ function deriveSessionId(events) {
 }
 
 /**
- * Ingest one SDK batch: store it keyed on sessionId (userId is usually still
- * null — behavioral data on a login page arrives BEFORE the user is known),
- * upsert the session summary, and if this batch happens to carry an
- * identify() event, stitch the userId in and trigger a forward.
+ * Ingest one SDK batch: store it in MongoDB keyed on sessionId.
+ * Redis/BullMQ forwarding removed — data is stored locally only.
  */
 async function ingest(dto, clientIp) {
   if (dto.events.length > config.maxBatchEvents) {
@@ -66,14 +63,13 @@ async function ingest(dto, clientIp) {
 
   if (browserUserId && !(existing && existing.userId)) {
     await attachUserId(sessionId, browserUserId, 'browser');
-    await enqueueForward(sessionId, 'identify');
+    // Forward queue disabled — no Redis/BullMQ
   }
 }
 
 /**
- * Attach a userId to a session and BACKFILL it onto every batch already
- * stored for that session (the pre-login behavior we care about most).
- * Server-side identify (trusted) overrides a browser-reported one.
+ * Attach a userId to a session and backfill it onto every batch already
+ * stored for that session.
  */
 async function attachUserId(sessionId, userId, source) {
   await Session.updateOne({ _id: sessionId }, { $set: { userId, identifiedBy: source } });

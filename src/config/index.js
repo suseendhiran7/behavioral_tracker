@@ -18,11 +18,6 @@ function jsonMap(v) {
 module.exports = {
   port: parseInt(process.env.PORT || '8080', 10),
   mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017/xylium',
-  redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
-  },
-  fastapiIngestUrl: process.env.FASTAPI_INGEST_URL || 'http://localhost:8000/ingest',
   allowedTenants: list(process.env.ALLOWED_TENANTS),
   corsOrigins: list(process.env.CORS_ORIGINS),
   tenantApiKeys: jsonMap(process.env.TENANT_API_KEYS),

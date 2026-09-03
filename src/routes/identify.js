@@ -2,14 +2,13 @@ const express = require('express');
 const apiKeyGuard = require('../middleware/apiKeyGuard');
 const { IdentifySchema } = require('../validation');
 const collectService = require('../collectService');
-const { enqueueForward } = require('../forward/queue');
 
 const router = express.Router();
 
 /**
  * Trusted server-to-server identify. The customer's login backend calls this
- * after a verified login to stamp a real userId onto the session. This path
- * is authoritative and overrides any browser-reported userId.
+ * after a verified login to stamp a real userId onto the session.
+ * Forward queue removed — data is stored in MongoDB directly.
  */
 router.post('/', apiKeyGuard, async (req, res, next) => {
   try {
@@ -19,7 +18,7 @@ router.post('/', apiKeyGuard, async (req, res, next) => {
     }
     const { sessionId, userId } = parsed.data;
     await collectService.attachUserId(sessionId, userId, 'server');
-    await enqueueForward(sessionId, 'identify');
+    // Forward queue disabled — no Redis/BullMQ
     res.status(200).json({ ok: true });
   } catch (err) {
     next(err);
