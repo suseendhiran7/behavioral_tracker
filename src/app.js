@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const config = require('./config');
-
 const healthRouter = require('./routes/health');
 const collectRouter = require('./routes/collect');
 const identifyRouter = require('./routes/identify');
@@ -10,22 +9,54 @@ const identifyRouter = require('./routes/identify');
 function createApp() {
   const app = express();
 
-  // CORS: the SDK POSTs cross-origin from customer sites. "*" is dev-only.
+  // CORS — must be first, before everything
   const origins = config.corsOrigins;
   app.use(
     cors({
       origin: origins.length === 0 || origins.includes('*') ? true : origins,
       methods: ['POST', 'GET', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'x-tenant-id'],
       maxAge: 86400,
     })
   );
 
-  // Body size cap applied before any parsing/validation.
+  // Handle preflight explicitly — browsers send OPTIONS before POST
+  app.options('*', cors());
+
+  // Parse application/json
   app.use(express.json({ limit: config.maxPayloadBytes }));
 
-  // Coarse IP-based abuse cap. Real per-tenant limits belong at the LB/gateway
-  // — many legitimate users share one IP (corporate NAT / mobile CGNAT), so
-  // keep this high or you'll silently drop telemetry.
+  // ── KEY FIX ──────────────────────────────────────────────────────
+  // sendBeacon (fired on page unload/logout) sends Content-Type: text/plain
+  // express.json() ignores it → req.body stays undefined → tenantGuard
+  // can't read tenantId → 403. This middleware catches those requests
+  // and parses the JSON manually before any route sees it.
+  app.use((req, res, next) => {
+    if (
+      req.method === 'POST' &&
+      req.is('text/plain') &&
+      (!req.body || Object.keys(req.body).length === 0)
+    ) {
+      let raw = '';
+      req.on('data', (chunk) => { raw += chunk; });
+      req.on('end', () => {
+        try {
+          req.body = JSON.parse(raw);
+        } catch (e) {
+          req.body = {};
+        }
+        next();
+      });
+      req.on('error', () => {
+        req.body = {};
+        next();
+      });
+    } else {
+      next();
+    }
+  });
+
+  // Rate limiting
   app.use(
     rateLimit({
       windowMs: config.rateLimitWindowMs,
@@ -42,7 +73,7 @@ function createApp() {
   // 404
   app.use((req, res) => res.status(404).json({ error: 'not found' }));
 
-  // Central error handler — catches BadRequestError, JSON parse errors, etc.
+  // Central error handler
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
     if (err.type === 'entity.too.large') {

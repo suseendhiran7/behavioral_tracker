@@ -1,17 +1,22 @@
 const config = require('../config');
 
-/**
- * /collect is a PUBLIC endpoint the SDK calls from arbitrary browsers, so we
- * can't require a real secret here. We CAN reject batches whose tenantId
- * isn't on our allowlist, so someone can't spray junk with a made-up id.
- * If ALLOWED_TENANTS is empty, the gate is open (dev convenience).
- */
 function tenantGuard(req, res, next) {
+  // Gate is open in dev if no tenants configured
   if (config.allowedTenants.length === 0) return next();
-  const tenantId = req.body && req.body.tenantId;
-  if (!tenantId || !config.allowedTenants.includes(tenantId)) {
+
+  // req.body can be undefined if Content-Type was wrong (e.g. sendBeacon)
+  // Parse it safely
+  const body = req.body || {};
+  const tenantId = body.tenantId;
+
+  if (!tenantId) {
+    return res.status(400).json({ error: 'tenantId missing' });
+  }
+
+  if (!config.allowedTenants.includes(tenantId)) {
     return res.status(403).json({ error: 'unknown tenant' });
   }
+
   next();
 }
 

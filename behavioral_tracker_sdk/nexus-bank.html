@@ -1,0 +1,2620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus Bank — Personal & Business Banking</title>
+
+<!-- Xylium SDK -->
+<script src="xylium-bf-v2.js"
+        data-tenant-id="tenant_test001"
+        data-app-id="app_test001"
+        data-api-endpoint="http://localhost:8080"
+        data-capture-geo="false">
+</script>
+
+<style>
+  /* ── Design tokens ─────────────────────────────────────────────── */
+  :root {
+    --navy:       #0B1F3A;
+    --navy-mid:   #162D50;
+    --navy-light: #1E3D6B;
+    --gold:       #C9973A;
+    --gold-light: #E5B96A;
+    --slate:      #4A5568;
+    --mist:       #F0F4F8;
+    --white:      #FFFFFF;
+    --danger:     #C0392B;
+    --success:    #1A7F5A;
+    --border:     #D1DCE8;
+    --text:       #1A2535;
+    --text-soft:  #5A6A7E;
+    --radius:     6px;
+    --shadow:     0 2px 12px rgba(11,31,58,0.10);
+    --shadow-lg:  0 8px 32px rgba(11,31,58,0.16);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: var(--mist);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Typography ───────────────────────────────────────────────── */
+  h1, h2, h3, h4 { font-family: 'Georgia', serif; font-weight: normal; }
+  .sans { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+  /* ── Utility ──────────────────────────────────────────────────── */
+  .hidden { display: none !important; }
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .gap-2 { gap: 8px; }
+  .gap-4 { gap: 16px; }
+  .mt-2 { margin-top: 8px; }
+  .mt-4 { margin-top: 16px; }
+  .mt-6 { margin-top: 24px; }
+  .w-full { width: 100%; }
+  .text-sm { font-size: 13px; }
+  .text-xs { font-size: 11px; }
+  .bold { font-weight: 600; }
+
+  /* ── Pages ────────────────────────────────────────────────────── */
+  .page { display: none; min-height: 100vh; }
+  .page.active { display: block; }
+
+  /* ══════════════════════════════════════════════════════════════
+     LANDING PAGE
+  ══════════════════════════════════════════════════════════════ */
+  #page-landing {
+    background: var(--navy);
+    color: var(--white);
+  }
+
+  .landing-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 60px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .brand-mark {
+    width: 38px; height: 38px;
+    background: var(--gold);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: bold; color: var(--navy);
+    font-family: Georgia, serif;
+    letter-spacing: -1px;
+  }
+
+  .brand-name {
+    font-size: 20px;
+    letter-spacing: 0.5px;
+    color: var(--white);
+  }
+
+  .brand-name span { color: var(--gold); }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+  }
+
+  .nav-links a {
+    color: rgba(255,255,255,0.72);
+    text-decoration: none;
+    transition: color .2s;
+  }
+
+  .nav-links a:hover { color: var(--white); }
+
+  .nav-actions { display: flex; gap: 12px; }
+
+  .btn {
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    padding: 10px 22px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    transition: all .2s;
+    font-weight: 500;
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: var(--white);
+  }
+
+  .btn-outline:hover { border-color: var(--white); }
+
+  .btn-gold {
+    background: var(--gold);
+    color: var(--navy);
+    font-weight: 600;
+  }
+
+  .btn-gold:hover { background: var(--gold-light); }
+
+  .btn-navy {
+    background: var(--navy);
+    color: var(--white);
+    border: 1px solid var(--navy-light);
+  }
+
+  .btn-navy:hover { background: var(--navy-light); }
+
+  .btn-primary {
+    background: var(--gold);
+    color: var(--navy);
+    font-weight: 600;
+    padding: 14px 32px;
+    font-size: 15px;
+  }
+
+  .btn-primary:hover { background: var(--gold-light); }
+
+  /* Hero */
+  .hero {
+    padding: 100px 60px 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+
+  .hero-eyebrow {
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  .hero h1 {
+    font-size: 52px;
+    line-height: 1.12;
+    margin-bottom: 24px;
+    color: var(--white);
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--gold-light);
+  }
+
+  .hero-sub {
+    font-family: -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.65);
+    margin-bottom: 36px;
+    max-width: 440px;
+  }
+
+  .hero-actions { display: flex; gap: 14px; align-items: center; }
+
+  .hero-link {
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding-bottom: 2px;
+    cursor: pointer;
+  }
+
+  /* Stats panel in hero */
+  .hero-panel {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 36px;
+  }
+
+  .hero-panel-title {
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .stat-row:last-child { border-bottom: none; }
+
+  .stat-label {
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .stat-value {
+    font-size: 18px;
+    color: var(--white);
+  }
+
+  .stat-value .change {
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    color: #4CAF8A;
+    margin-left: 6px;
+  }
+
+  /* Features strip */
+  .features-strip {
+    background: var(--navy-mid);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 40px 60px;
+  }
+
+  .features-grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+  }
+
+  .feature-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .feature-icon {
+    width: 40px; height: 40px;
+    background: rgba(201,151,58,0.12);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .feature-text h4 {
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+
+  .feature-text p {
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.5;
+  }
+
+  /* Rates section */
+  .rates-section {
+    padding: 80px 60px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .section-eyebrow {
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: 36px;
+    color: var(--white);
+  }
+
+  .rates-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .rate-card {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 32px;
+    transition: border-color .2s;
+  }
+
+  .rate-card:hover { border-color: var(--gold); }
+
+  .rate-card-type {
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 8px;
+  }
+
+  .rate-card-name {
+    font-size: 22px;
+    color: var(--white);
+    margin-bottom: 20px;
+  }
+
+  .rate-number {
+    font-size: 48px;
+    color: var(--gold);
+    line-height: 1;
+  }
+
+  .rate-number span {
+    font-size: 20px;
+    color: rgba(255,255,255,0.5);
+    font-family: -apple-system, sans-serif;
+  }
+
+  .rate-desc {
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+
+  /* Footer bar */
+  .landing-footer {
+    background: rgba(0,0,0,0.3);
+    padding: 24px 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a { color: rgba(255,255,255,0.3); text-decoration: none; }
+  .footer-links a:hover { color: rgba(255,255,255,0.6); }
+
+  /* ══════════════════════════════════════════════════════════════
+     LOGIN PAGE
+  ══════════════════════════════════════════════════════════════ */
+  #page-login {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .login-left {
+    background: var(--navy);
+    padding: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .login-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+  }
+
+  .login-tagline {
+    margin-top: auto;
+    padding-top: 60px;
+  }
+
+  .login-tagline h2 {
+    font-size: 38px;
+    color: var(--white);
+    line-height: 1.2;
+    margin-bottom: 16px;
+  }
+
+  .login-tagline h2 em { color: var(--gold-light); font-style: italic; }
+
+  .login-tagline p {
+    font-family: -apple-system, sans-serif;
+    font-size: 15px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.6;
+    max-width: 360px;
+  }
+
+  .login-security-badges {
+    display: flex;
+    gap: 20px;
+    margin-top: 48px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+  }
+
+  .badge-icon {
+    width: 28px; height: 28px;
+    background: rgba(201,151,58,0.15);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+
+  .login-right {
+    background: var(--white);
+    padding: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .login-form-wrap {
+    max-width: 400px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .login-form-wrap h3 {
+    font-size: 28px;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+
+  .login-form-wrap .sub {
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    color: var(--text-soft);
+    margin-bottom: 36px;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: var(--slate);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    transition: border-color .2s;
+    outline: none;
+    background: var(--white);
+  }
+
+  .form-input:focus { border-color: var(--navy); }
+
+  .form-input.error { border-color: var(--danger); }
+
+  .password-wrap {
+    position: relative;
+  }
+
+  .password-wrap .form-input { padding-right: 44px; }
+
+  .eye-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-soft);
+    font-size: 16px;
+    padding: 0;
+  }
+
+  .form-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .check-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: var(--text-soft);
+    cursor: pointer;
+  }
+
+  .forgot-link {
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: var(--navy);
+    text-decoration: none;
+    border-bottom: 1px solid var(--navy);
+    padding-bottom: 1px;
+  }
+
+  .login-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--navy);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius);
+    font-family: -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s;
+    letter-spacing: 0.3px;
+  }
+
+  .login-btn:hover { background: var(--navy-light); }
+
+  .login-divider {
+    text-align: center;
+    margin: 24px 0;
+    position: relative;
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    color: var(--text-soft);
+  }
+
+  .login-divider::before, .login-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 42%;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .login-divider::before { left: 0; }
+  .login-divider::after { right: 0; }
+
+  .login-alt-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .alt-btn {
+    padding: 11px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--white);
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: border-color .2s;
+  }
+
+  .alt-btn:hover { border-color: var(--navy); }
+
+  .register-link {
+    text-align: center;
+    margin-top: 28px;
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: var(--text-soft);
+  }
+
+  .register-link a {
+    color: var(--navy);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid var(--navy);
+  }
+
+  .error-msg {
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: var(--danger);
+    margin-top: 6px;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     DASHBOARD
+  ══════════════════════════════════════════════════════════════ */
+  #page-dashboard { background: var(--mist); }
+
+  /* Top navbar */
+  .dash-nav {
+    background: var(--navy);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .dash-nav-left { display: flex; align-items: center; gap: 32px; }
+
+  .dash-nav-links {
+    display: flex;
+    gap: 4px;
+    list-style: none;
+  }
+
+  .dash-nav-links a {
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all .2s;
+    display: block;
+  }
+
+  .dash-nav-links a:hover, .dash-nav-links a.active {
+    background: rgba(255,255,255,0.08);
+    color: var(--white);
+  }
+
+  .dash-nav-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .notif-btn {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    border-radius: 50%;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+
+  .notif-dot {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 8px; height: 8px;
+    background: var(--gold);
+    border-radius: 50%;
+    border: 1.5px solid var(--navy);
+  }
+
+  .user-avatar {
+    width: 36px; height: 36px;
+    background: var(--gold);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--navy);
+    cursor: pointer;
+  }
+
+  /* Dashboard layout */
+  .dash-body {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: calc(100vh - 60px);
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--white);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+  }
+
+  .sidebar-section {
+    margin-bottom: 8px;
+  }
+
+  .sidebar-label {
+    font-family: -apple-system, sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    padding: 0 20px;
+    margin-bottom: 6px;
+    margin-top: 16px;
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    color: var(--text-soft);
+    cursor: pointer;
+    transition: all .15s;
+    border-left: 3px solid transparent;
+  }
+
+  .sidebar-item:hover {
+    background: var(--mist);
+    color: var(--navy);
+  }
+
+  .sidebar-item.active {
+    background: rgba(11,31,58,0.05);
+    color: var(--navy);
+    border-left-color: var(--gold);
+    font-weight: 500;
+  }
+
+  .sidebar-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .sidebar-badge {
+    margin-left: auto;
+    background: var(--navy);
+    color: var(--white);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+
+  /* Main content */
+  .dash-main {
+    padding: 32px;
+    overflow-y: auto;
+  }
+
+  .dash-greeting {
+    margin-bottom: 28px;
+  }
+
+  .dash-greeting h2 {
+    font-size: 26px;
+    color: var(--navy);
+    margin-bottom: 4px;
+  }
+
+  .dash-greeting p {
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    color: var(--text-soft);
+  }
+
+  /* Summary cards row */
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  .sum-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+
+  .sum-card-label {
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    color: var(--text-soft);
+    margin-bottom: 8px;
+  }
+
+  .sum-card-value {
+    font-size: 24px;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+
+  .sum-card-change {
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+  }
+
+  .up { color: var(--success); }
+  .down { color: var(--danger); }
+
+  /* Account cards */
+  .accounts-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  .acct-card {
+    border-radius: 10px;
+    padding: 28px;
+    color: var(--white);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .2s;
+  }
+
+  .acct-card:hover { transform: translateY(-2px); }
+
+  .acct-card.savings { background: linear-gradient(135deg, #0B1F3A 0%, #1E3D6B 100%); }
+  .acct-card.current { background: linear-gradient(135deg, #1A4A3A 0%, #2D7A5E 100%); }
+  .acct-card.fd { background: linear-gradient(135deg, #3A2A0B 0%, #7A5A1A 100%); }
+
+  .acct-card::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .acct-type {
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    opacity: 0.6;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .acct-num {
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    opacity: 0.5;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+  }
+
+  .acct-balance {
+    font-size: 30px;
+    margin-bottom: 4px;
+  }
+
+  .acct-balance-label {
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    opacity: 0.5;
+  }
+
+  .acct-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .acct-action-btn {
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: transparent;
+    color: var(--white);
+    cursor: pointer;
+    transition: background .2s;
+  }
+
+  .acct-action-btn:hover { background: rgba(255,255,255,0.1); }
+
+  /* Two column layout */
+  .two-col { display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
+
+  /* Transaction table */
+  .card-panel {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+
+  .card-panel-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-panel-title {
+    font-size: 18px;
+    color: var(--navy);
+  }
+
+  .card-panel-action {
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: var(--navy);
+    cursor: pointer;
+    border-bottom: 1px solid var(--navy);
+    text-decoration: none;
+    padding-bottom: 1px;
+  }
+
+  .txn-table { width: 100%; }
+
+  .txn-row {
+    display: flex;
+    align-items: center;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    gap: 14px;
+    transition: background .15s;
+  }
+
+  .txn-row:last-child { border-bottom: none; }
+  .txn-row:hover { background: var(--mist); }
+
+  .txn-icon {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .txn-info { flex: 1; }
+
+  .txn-name {
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .txn-date {
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    color: var(--text-soft);
+  }
+
+  .txn-amount {
+    font-size: 15px;
+    font-weight: 500;
+    text-align: right;
+  }
+
+  .txn-status {
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 10px;
+  }
+
+  .status-success { background: #E8F5EF; color: var(--success); }
+  .status-pending { background: #FFF8E6; color: #B07A00; }
+  .status-failed  { background: #FDEEEC; color: var(--danger); }
+
+  /* Quick actions */
+  .quick-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 20px 24px;
+  }
+
+  .qa-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 18px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--white);
+    cursor: pointer;
+    transition: all .2s;
+    font-family: -apple-system, sans-serif;
+  }
+
+  .qa-btn:hover { border-color: var(--navy); background: var(--mist); }
+
+  .qa-icon { font-size: 22px; }
+
+  .qa-label {
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 500;
+    text-align: center;
+  }
+
+  /* Charts placeholder */
+  .chart-wrap {
+    padding: 24px;
+  }
+
+  .chart-bar-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 100px;
+    margin-bottom: 8px;
+  }
+
+  .chart-bar-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .bar-income, .bar-expense {
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    transition: opacity .2s;
+  }
+
+  .bar-income { background: var(--navy); }
+  .bar-expense { background: var(--gold); }
+  .bar-income:hover, .bar-expense:hover { opacity: 0.75; }
+
+  .chart-month {
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    color: var(--text-soft);
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 20px;
+    margin-top: 12px;
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    color: var(--text-soft);
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     TRANSFER PAGE
+  ══════════════════════════════════════════════════════════════ */
+  .transfer-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+  }
+
+  .transfer-form { padding: 28px; }
+
+  .form-section-title {
+    font-size: 17px;
+    color: var(--navy);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .form-select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--white);
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235A6A7E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+  }
+
+  .form-select:focus { border-color: var(--navy); }
+
+  .amount-input-wrap {
+    position: relative;
+  }
+
+  .amount-prefix {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: var(--text-soft);
+    font-family: -apple-system, sans-serif;
+  }
+
+  .amount-input-wrap .form-input { padding-left: 32px; font-size: 20px; font-weight: 500; }
+
+  .beneficiary-list { margin-bottom: 20px; }
+
+  .bene-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+
+  .bene-item:hover, .bene-item.selected { border-color: var(--navy); background: var(--mist); }
+
+  .bene-avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    font-family: -apple-system, sans-serif;
+    flex-shrink: 0;
+  }
+
+  .bene-info { flex: 1; }
+
+  .bene-name {
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .bene-acct {
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    color: var(--text-soft);
+  }
+
+  /* Notification toast */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: var(--navy);
+    color: var(--white);
+    padding: 14px 20px;
+    border-radius: var(--radius);
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    box-shadow: var(--shadow-lg);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all .3s ease;
+    max-width: 360px;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-left: 4px solid #4CAF8A; }
+  .toast.error { border-left: 4px solid var(--danger); }
+  .toast.info { border-left: 4px solid var(--gold); }
+
+  /* ══════════════════════════════════════════════════════════════
+     STATEMENTS PAGE
+  ══════════════════════════════════════════════════════════════ */
+  .filter-bar {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--white);
+    cursor: pointer;
+    outline: none;
+  }
+
+  .filter-select:focus { border-color: var(--navy); }
+
+  .search-input {
+    padding: 8px 12px 8px 32px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    position: relative;
+    background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235A6A7E' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;
+  }
+
+  .search-input:focus { border-color: var(--navy); }
+
+  .statements-table { width: 100%; border-collapse: collapse; }
+
+  .statements-table th {
+    text-align: left;
+    padding: 12px 24px;
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-soft);
+    background: var(--mist);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+  }
+
+  .statements-table td {
+    padding: 14px 24px;
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .statements-table tr:hover td { background: var(--mist); }
+
+  /* ══════════════════════════════════════════════════════════════
+     PROFILE PAGE
+  ══════════════════════════════════════════════════════════════ */
+  .profile-header {
+    background: var(--navy);
+    padding: 40px 32px;
+    margin: -32px -32px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .profile-avatar-lg {
+    width: 72px; height: 72px;
+    background: var(--gold);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--navy);
+    font-family: -apple-system, sans-serif;
+  }
+
+  .profile-name { font-size: 26px; color: var(--white); margin-bottom: 4px; }
+
+  .profile-since {
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     MODAL
+  ══════════════════════════════════════════════════════════════ */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(11,31,58,0.55);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s;
+  }
+
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--white);
+    border-radius: 10px;
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 480px;
+    padding: 36px;
+    transform: translateY(16px);
+    transition: transform .25s;
+  }
+
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-title {
+    font-size: 22px;
+    color: var(--navy);
+    margin-bottom: 8px;
+  }
+
+  .modal-sub {
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    color: var(--text-soft);
+    margin-bottom: 28px;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+    justify-content: flex-end;
+  }
+
+  .btn-cancel {
+    padding: 11px 22px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--white);
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--text);
+  }
+
+  .btn-confirm {
+    padding: 11px 22px;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--navy);
+    color: var(--white);
+    font-family: -apple-system, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .otp-inputs {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin: 24px 0;
+  }
+
+  .otp-digit {
+    width: 50px; height: 56px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    text-align: center;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--navy);
+    outline: none;
+    transition: border-color .2s;
+  }
+
+  .otp-digit:focus { border-color: var(--navy); }
+
+  /* Responsive minimal */
+  @media (max-width: 1024px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero-panel { display: none; }
+    .dash-body { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .summary-cards { grid-template-columns: 1fr 1fr; }
+    .accounts-row { grid-template-columns: 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .transfer-grid { grid-template-columns: 1fr; }
+    .profile-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════
+     LANDING PAGE
+════════════════════════════════════════════════════════ -->
+<div id="page-landing" class="page active">
+  <nav class="landing-nav">
+    <div class="brand">
+      <div class="brand-mark">N</div>
+      <div class="brand-name">Nexus<span>Bank</span></div>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#">Personal</a></li>
+      <li><a href="#">Business</a></li>
+      <li><a href="#">Investments</a></li>
+      <li><a href="#">Loans</a></li>
+      <li><a href="#">About</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="btn btn-outline" onclick="showPage('login')">Sign In</button>
+      <button class="btn btn-gold">Open Account</button>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-eyebrow">Trusted since 1987 · FDIC Insured</div>
+      <h1>Banking built for <em>what's next</em></h1>
+      <p class="hero-sub">Nexus Bank combines 36 years of financial expertise with modern digital tools — giving you control, clarity, and confidence over your money.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="showPage('login')">Access My Account</button>
+        <a class="hero-link" href="#">Explore products</a>
+      </div>
+    </div>
+    <div class="hero-panel">
+      <div class="hero-panel-title">Market Overview</div>
+      <div class="stat-row">
+        <span class="stat-label">Savings Rate</span>
+        <span class="stat-value">5.20% <span class="change">↑ 0.15%</span></span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Fixed Deposit (1Y)</span>
+        <span class="stat-value">6.80%</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Home Loan Rate</span>
+        <span class="stat-value">8.45%</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Gold Rate / 10g</span>
+        <span class="stat-value">₹71,240 <span class="change">↑ 1.2%</span></span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">USD / INR</span>
+        <span class="stat-value">83.42</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="features-strip">
+    <div class="features-grid">
+      <div class="feature-item">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-text">
+          <h4>Bank-grade Security</h4>
+          <p>256-bit encryption and multi-factor authentication protect every transaction.</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-text">
+          <h4>Instant Transfers</h4>
+          <p>Send money to any bank account within seconds, 24 hours a day.</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📊</div>
+        <div class="feature-text">
+          <h4>Spending Insights</h4>
+          <p>Automatic categorization and monthly reports help you stay on track.</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-text">
+          <h4>Goal Planning</h4>
+          <p>Set savings goals and watch your progress with automated deposits.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="rates-section">
+    <div class="section-header">
+      <div class="section-eyebrow">Current Offers</div>
+      <h2 class="section-title">Our best rates this quarter</h2>
+    </div>
+    <div class="rates-grid">
+      <div class="rate-card">
+        <div class="rate-card-type">Savings Account</div>
+        <div class="rate-card-name">Nexus Saver Plus</div>
+        <div class="rate-number">5.20<span>% p.a.</span></div>
+        <div class="rate-desc">No minimum balance required. Interest compounded quarterly. Free debit card included.</div>
+      </div>
+      <div class="rate-card">
+        <div class="rate-card-type">Fixed Deposit</div>
+        <div class="rate-card-name">Guaranteed Growth</div>
+        <div class="rate-number">6.80<span>% p.a.</span></div>
+        <div class="rate-desc">Lock in your money for 12–60 months. Premature withdrawal available with minimal penalty.</div>
+      </div>
+      <div class="rate-card">
+        <div class="rate-card-type">Home Loan</div>
+        <div class="rate-card-name">Dream Home Loan</div>
+        <div class="rate-number">8.45<span>% p.a.</span></div>
+        <div class="rate-desc">Up to ₹5 crore. Tenure up to 30 years. Zero processing fee for first 60 days.</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="landing-footer">
+    <span>© 2026 Nexus Bank Ltd. All rights reserved. FDIC Insured.</span>
+    <div class="footer-links">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Service</a>
+      <a href="#">Security</a>
+      <a href="#">Grievance Redressal</a>
+    </div>
+  </footer>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     LOGIN PAGE
+════════════════════════════════════════════════════════ -->
+<div id="page-login" class="page">
+  <div class="login-left">
+    <div class="login-brand" onclick="showPage('landing')">
+      <div class="brand-mark">N</div>
+      <div class="brand-name" style="color:white">Nexus<span style="color:var(--gold)">Bank</span></div>
+    </div>
+
+    <div class="login-tagline">
+      <h2>Your money,<br><em>always within reach</em></h2>
+      <p>Secure access to all your accounts, transfers, and financial tools — from any device, anywhere.</p>
+
+      <div class="login-security-badges">
+        <div class="badge">
+          <div class="badge-icon">🔒</div>
+          <span>256-bit SSL</span>
+        </div>
+        <div class="badge">
+          <div class="badge-icon">🛡️</div>
+          <span>FDIC Insured</span>
+        </div>
+        <div class="badge">
+          <div class="badge-icon">✅</div>
+          <span>RBI Regulated</span>
+        </div>
+        <div class="badge">
+          <div class="badge-icon">🔐</div>
+          <span>2FA Protected</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-right">
+    <div class="login-form-wrap">
+      <h3>Welcome back</h3>
+      <p class="sub">Sign in to your Nexus Bank account</p>
+
+      <div class="form-group">
+        <label for="login-username">Customer ID or Registered Email</label>
+        <input
+          type="text"
+          id="login-username"
+          name="username"
+          data-bf-field="username"
+          class="form-input"
+          placeholder="Enter your Customer ID or email"
+          autocomplete="username"
+        />
+        <div class="error-msg hidden" id="err-username">Please enter your Customer ID or email.</div>
+      </div>
+
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <div class="password-wrap">
+          <input
+            type="password"
+            id="login-password"
+            name="password"
+            data-bf-field="password"
+            class="form-input"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+          />
+          <button class="eye-toggle" type="button" onclick="togglePassword()" id="eye-btn">👁</button>
+        </div>
+        <div class="error-msg hidden" id="err-password">Please enter your password.</div>
+      </div>
+
+      <div class="form-row">
+        <label class="check-label">
+          <input type="checkbox" id="remember-me" /> Remember this device
+        </label>
+        <a class="forgot-link" href="#" onclick="showModal('forgot')">Forgot password?</a>
+      </div>
+
+      <button class="login-btn" id="login-submit-btn" onclick="handleLogin()">Sign In</button>
+
+      <div class="login-divider">or continue with</div>
+
+      <div class="login-alt-options">
+        <button class="alt-btn" onclick="showToast('Redirecting to OTP login...', 'info')">📱 OTP Login</button>
+        <button class="alt-btn" onclick="showToast('Biometric login coming soon', 'info')">🔐 Biometric</button>
+      </div>
+
+      <div class="register-link">
+        New to Nexus Bank? <a href="#">Open an account</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     DASHBOARD
+════════════════════════════════════════════════════════ -->
+<div id="page-dashboard" class="page">
+  <nav class="dash-nav">
+    <div class="dash-nav-left">
+      <div class="brand" style="cursor:pointer" onclick="showPage('landing')">
+        <div class="brand-mark">N</div>
+        <div class="brand-name">Nexus<span>Bank</span></div>
+      </div>
+      <ul class="dash-nav-links">
+        <li><a onclick="showDashSection('overview')" class="active" id="nav-overview">Overview</a></li>
+        <li><a onclick="showDashSection('transfer')" id="nav-transfer">Transfer</a></li>
+        <li><a onclick="showDashSection('statements')" id="nav-statements">Statements</a></li>
+        <li><a onclick="showDashSection('investments')" id="nav-investments">Investments</a></li>
+        <li><a onclick="showDashSection('loans')" id="nav-loans">Loans</a></li>
+        <li><a onclick="showDashSection('profile')" id="nav-profile">Profile</a></li>
+      </ul>
+    </div>
+    <div class="dash-nav-right">
+      <button class="notif-btn" onclick="showToast('3 new notifications', 'info')">
+        🔔 <span class="notif-dot"></span>
+      </button>
+      <div class="user-avatar" onclick="showDashSection('profile')">AK</div>
+      <button class="btn btn-outline" style="padding:8px 16px;font-size:13px" onclick="handleLogout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="dash-body">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Accounts</div>
+        <div class="sidebar-item active" onclick="showDashSection('overview')">
+          <span class="sidebar-icon">🏠</span> Overview
+        </div>
+        <div class="sidebar-item" onclick="showDashSection('statements')">
+          <span class="sidebar-icon">📋</span> Statements
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-icon">💳</span> Cards
+          <span class="sidebar-badge">2</span>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Transactions</div>
+        <div class="sidebar-item" onclick="showDashSection('transfer')">
+          <span class="sidebar-icon">↗️</span> Transfer
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-icon">📱</span> UPI / QR
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-icon">🔁</span> Standing Orders
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Grow</div>
+        <div class="sidebar-item" onclick="showDashSection('investments')">
+          <span class="sidebar-icon">📈</span> Investments
+        </div>
+        <div class="sidebar-item" onclick="showDashSection('loans')">
+          <span class="sidebar-icon">🏦</span> Loans
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-icon">🎯</span> Goals
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Support</div>
+        <div class="sidebar-item">
+          <span class="sidebar-icon">💬</span> Help Centre
+        </div>
+        <div class="sidebar-item" onclick="showDashSection('profile')">
+          <span class="sidebar-icon">⚙️</span> Settings
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main area — sections -->
+    <main class="dash-main">
+
+      <!-- OVERVIEW SECTION -->
+      <div id="section-overview">
+        <div class="dash-greeting">
+          <h2>Good morning, Arjun</h2>
+          <p>Thursday, 4 September 2026 · Last login: Yesterday at 11:42 PM from Chennai</p>
+        </div>
+
+        <div class="summary-cards">
+          <div class="sum-card">
+            <div class="sum-card-label">Total Balance</div>
+            <div class="sum-card-value">₹4,82,310</div>
+            <div class="sum-card-change up">↑ ₹12,400 this month</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-card-label">Monthly Spend</div>
+            <div class="sum-card-value">₹38,240</div>
+            <div class="sum-card-change down">↑ ₹4,200 vs last month</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-card-label">Active Investments</div>
+            <div class="sum-card-value">₹1,20,000</div>
+            <div class="sum-card-change up">↑ 8.4% returns</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-card-label">Credit Score</div>
+            <div class="sum-card-value">782</div>
+            <div class="sum-card-change up">↑ 12 pts · Excellent</div>
+          </div>
+        </div>
+
+        <div class="accounts-row">
+          <div class="acct-card savings">
+            <div class="acct-type">Savings Account</div>
+            <div class="acct-num">•••• •••• 4821</div>
+            <div class="acct-balance">₹2,84,310</div>
+            <div class="acct-balance-label">Available Balance</div>
+            <div class="acct-card-actions">
+              <button class="acct-action-btn" onclick="showDashSection('transfer')">Transfer</button>
+              <button class="acct-action-btn" onclick="showDashSection('statements')">Statement</button>
+            </div>
+          </div>
+          <div class="acct-card current">
+            <div class="acct-type">Current Account</div>
+            <div class="acct-num">•••• •••• 9034</div>
+            <div class="acct-balance">₹98,000</div>
+            <div class="acct-balance-label">Available Balance</div>
+            <div class="acct-card-actions">
+              <button class="acct-action-btn" onclick="showDashSection('transfer')">Transfer</button>
+              <button class="acct-action-btn" onclick="showDashSection('statements')">Statement</button>
+            </div>
+          </div>
+          <div class="acct-card fd">
+            <div class="acct-type">Fixed Deposit</div>
+            <div class="acct-num">Matures 14 Mar 2027</div>
+            <div class="acct-balance">₹1,00,000</div>
+            <div class="acct-balance-label">Principal · 6.80% p.a.</div>
+            <div class="acct-card-actions">
+              <button class="acct-action-btn" onclick="showToast('FD details loaded', 'info')">Details</button>
+              <button class="acct-action-btn" onclick="showToast('Certificate downloaded', 'success')">Certificate</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <!-- Recent transactions -->
+          <div class="card-panel">
+            <div class="card-panel-header">
+              <h3 class="card-panel-title">Recent Transactions</h3>
+              <a class="card-panel-action" onclick="showDashSection('statements')">View all</a>
+            </div>
+            <div class="txn-table">
+              <div class="txn-row">
+                <div class="txn-icon" style="background:#E8F5EF">🛒</div>
+                <div class="txn-info">
+                  <div class="txn-name">Big Bazaar — Groceries</div>
+                  <div class="txn-date">Today, 9:12 AM</div>
+                </div>
+                <div>
+                  <div class="txn-amount down">− ₹2,840</div>
+                  <div class="txn-status status-success">Completed</div>
+                </div>
+              </div>
+              <div class="txn-row">
+                <div class="txn-icon" style="background:#EEF2FF">💰</div>
+                <div class="txn-info">
+                  <div class="txn-name">Salary Credit — TechCorp India</div>
+                  <div class="txn-date">3 Sep 2026, 12:00 AM</div>
+                </div>
+                <div>
+                  <div class="txn-amount up">+ ₹95,000</div>
+                  <div class="txn-status status-success">Completed</div>
+                </div>
+              </div>
+              <div class="txn-row">
+                <div class="txn-icon" style="background:#FFF8E6">⚡</div>
+                <div class="txn-info">
+                  <div class="txn-name">TNEB — Electricity Bill</div>
+                  <div class="txn-date">2 Sep 2026, 3:45 PM</div>
+                </div>
+                <div>
+                  <div class="txn-amount down">− ₹1,240</div>
+                  <div class="txn-status status-success">Completed</div>
+                </div>
+              </div>
+              <div class="txn-row">
+                <div class="txn-icon" style="background:#FDEEEC">🏠</div>
+                <div class="txn-info">
+                  <div class="txn-name">EMI — Home Loan</div>
+                  <div class="txn-date">1 Sep 2026, 9:00 AM</div>
+                </div>
+                <div>
+                  <div class="txn-amount down">− ₹28,500</div>
+                  <div class="txn-status status-success">Completed</div>
+                </div>
+              </div>
+              <div class="txn-row">
+                <div class="txn-icon" style="background:#F0F4FF">📱</div>
+                <div class="txn-info">
+                  <div class="txn-name">Amazon — Electronics</div>
+                  <div class="txn-date">30 Aug 2026, 7:22 PM</div>
+                </div>
+                <div>
+                  <div class="txn-amount down">− ₹12,499</div>
+                  <div class="txn-status status-pending">Pending</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right column -->
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <!-- Quick actions -->
+            <div class="card-panel">
+              <div class="card-panel-header">
+                <h3 class="card-panel-title">Quick Actions</h3>
+              </div>
+              <div class="quick-actions-grid">
+                <button class="qa-btn" onclick="showDashSection('transfer')">
+                  <span class="qa-icon">↗️</span>
+                  <span class="qa-label">Send Money</span>
+                </button>
+                <button class="qa-btn" onclick="showToast('QR scanner opening...', 'info')">
+                  <span class="qa-icon">📷</span>
+                  <span class="qa-label">Scan & Pay</span>
+                </button>
+                <button class="qa-btn" onclick="showToast('Requesting money...', 'info')">
+                  <span class="qa-icon">📥</span>
+                  <span class="qa-label">Request Money</span>
+                </button>
+                <button class="qa-btn" onclick="showToast('Opening bill payment...', 'info')">
+                  <span class="qa-icon">📄</span>
+                  <span class="qa-label">Pay Bills</span>
+                </button>
+                <button class="qa-btn" onclick="showToast('Mobile recharge...', 'info')">
+                  <span class="qa-icon">📱</span>
+                  <span class="qa-label">Recharge</span>
+                </button>
+                <button class="qa-btn" onclick="showDashSection('investments')">
+                  <span class="qa-icon">📈</span>
+                  <span class="qa-label">Invest</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Spend chart -->
+            <div class="card-panel">
+              <div class="card-panel-header">
+                <h3 class="card-panel-title">Income vs Spend</h3>
+              </div>
+              <div class="chart-wrap">
+                <div class="chart-bar-row" id="spend-chart"></div>
+                <div class="chart-legend">
+                  <span><span class="legend-dot" style="background:var(--navy)"></span>Income</span>
+                  <span><span class="legend-dot" style="background:var(--gold)"></span>Spend</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRANSFER SECTION -->
+      <div id="section-transfer" class="hidden">
+        <div class="dash-greeting">
+          <h2>Fund Transfer</h2>
+          <p>Transfer money to any bank account instantly</p>
+        </div>
+        <div class="transfer-grid">
+          <div class="card-panel">
+            <div class="transfer-form">
+              <h3 class="form-section-title">Transfer Details</h3>
+              <div class="form-group">
+                <label>From Account</label>
+                <select class="form-select" data-bf-field="from-account">
+                  <option>Savings •••• 4821 — ₹2,84,310</option>
+                  <option>Current •••• 9034 — ₹98,000</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Transfer Type</label>
+                <select class="form-select" data-bf-field="transfer-type" onchange="updateTransferType(this.value)">
+                  <option value="neft">NEFT</option>
+                  <option value="imps">IMPS (Instant)</option>
+                  <option value="rtgs">RTGS</option>
+                  <option value="upi">UPI</option>
+                </select>
+              </div>
+              <div id="transfer-beneficiary-section">
+                <div class="form-group">
+                  <label>Beneficiary Account Number</label>
+                  <input type="text" class="form-input" data-bf-field="bene-account" placeholder="Enter account number" />
+                </div>
+                <div class="form-group">
+                  <label>IFSC Code</label>
+                  <input type="text" class="form-input" data-bf-field="ifsc" placeholder="e.g. SBIN0001234" />
+                </div>
+                <div class="form-group">
+                  <label>Beneficiary Name</label>
+                  <input type="text" class="form-input" data-bf-field="bene-name" placeholder="Full name as per bank" />
+                </div>
+              </div>
+              <div id="upi-section" class="hidden">
+                <div class="form-group">
+                  <label>UPI ID</label>
+                  <input type="text" class="form-input" data-bf-field="upi-id" placeholder="name@upi" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Amount</label>
+                <div class="amount-input-wrap">
+                  <span class="amount-prefix">₹</span>
+                  <input type="number" class="form-input" data-bf-field="transfer-amount" placeholder="0.00" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Remarks (optional)</label>
+                <input type="text" class="form-input" data-bf-field="transfer-remarks" placeholder="What's this transfer for?" />
+              </div>
+              <div class="form-group">
+                <label>Schedule</label>
+                <select class="form-select" data-bf-field="transfer-schedule">
+                  <option>Transfer Now</option>
+                  <option>Schedule for Later</option>
+                  <option>Set as Recurring</option>
+                </select>
+              </div>
+              <button class="login-btn" onclick="showModal('transfer-confirm')" style="margin-top:8px">Proceed to Confirm</button>
+            </div>
+          </div>
+
+          <!-- Saved beneficiaries -->
+          <div>
+            <div class="card-panel" style="margin-bottom:20px">
+              <div class="card-panel-header">
+                <h3 class="card-panel-title">Saved Beneficiaries</h3>
+                <a class="card-panel-action" onclick="showToast('Add beneficiary form opening...', 'info')">+ Add New</a>
+              </div>
+              <div style="padding:16px">
+                <div class="beneficiary-list">
+                  <div class="bene-item" onclick="selectBene(this, 'Priya Sharma', 'SBI •••• 3821')">
+                    <div class="bene-avatar" style="background:#EEF2FF;color:#4060C0">PS</div>
+                    <div class="bene-info">
+                      <div class="bene-name">Priya Sharma</div>
+                      <div class="bene-acct">SBI •••• 3821 · SBIN0001234</div>
+                    </div>
+                  </div>
+                  <div class="bene-item" onclick="selectBene(this, 'Ravi Kumar', 'HDFC •••• 7723')">
+                    <div class="bene-avatar" style="background:#FFF0E6;color:#C07030">RK</div>
+                    <div class="bene-info">
+                      <div class="bene-name">Ravi Kumar</div>
+                      <div class="bene-acct">HDFC •••• 7723 · HDFC0002345</div>
+                    </div>
+                  </div>
+                  <div class="bene-item" onclick="selectBene(this, 'Meena Iyer', 'ICICI •••• 5510')">
+                    <div class="bene-avatar" style="background:#E8F5EF;color:#1A6A40">MI</div>
+                    <div class="bene-info">
+                      <div class="bene-name">Meena Iyer</div>
+                      <div class="bene-acct">ICICI •••• 5510 · ICIC0003456</div>
+                    </div>
+                  </div>
+                  <div class="bene-item" onclick="selectBene(this, 'Tech Solutions Ltd', 'Axis •••• 0012')">
+                    <div class="bene-avatar" style="background:#F5E8FF;color:#6A20A0">TS</div>
+                    <div class="bene-info">
+                      <div class="bene-name">Tech Solutions Ltd</div>
+                      <div class="bene-acct">Axis •••• 0012 · UTIB0001234</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card-panel">
+              <div class="card-panel-header">
+                <h3 class="card-panel-title">Transfer Limits</h3>
+              </div>
+              <div style="padding:20px">
+                <div class="txn-row" style="padding:10px 0;border-bottom:1px solid var(--border)">
+                  <span class="txn-date">NEFT / RTGS Daily</span>
+                  <span class="txn-name">₹10,00,000</span>
+                </div>
+                <div class="txn-row" style="padding:10px 0;border-bottom:1px solid var(--border)">
+                  <span class="txn-date">IMPS Daily</span>
+                  <span class="txn-name">₹5,00,000</span>
+                </div>
+                <div class="txn-row" style="padding:10px 0">
+                  <span class="txn-date">UPI Daily</span>
+                  <span class="txn-name">₹1,00,000</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATEMENTS SECTION -->
+      <div id="section-statements" class="hidden">
+        <div class="dash-greeting">
+          <h2>Account Statements</h2>
+          <p>View and download your transaction history</p>
+        </div>
+        <div class="card-panel">
+          <div class="filter-bar">
+            <select class="filter-select">
+              <option>Savings •••• 4821</option>
+              <option>Current •••• 9034</option>
+            </select>
+            <select class="filter-select">
+              <option>Last 30 days</option>
+              <option>Last 3 months</option>
+              <option>Last 6 months</option>
+              <option>This year</option>
+              <option>Custom range</option>
+            </select>
+            <select class="filter-select">
+              <option>All types</option>
+              <option>Credits only</option>
+              <option>Debits only</option>
+            </select>
+            <input class="search-input" placeholder="Search transactions" />
+            <button class="btn btn-navy" style="margin-left:auto" onclick="showToast('Downloading PDF statement...', 'info')">⬇ Download PDF</button>
+            <button class="btn btn-navy" onclick="showToast('Downloading Excel...', 'info')">⬇ Excel</button>
+          </div>
+          <table class="statements-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Reference</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Balance</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="statements-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- INVESTMENTS SECTION -->
+      <div id="section-investments" class="hidden">
+        <div class="dash-greeting">
+          <h2>Investments</h2>
+          <p>Grow your wealth with Nexus Bank investment products</p>
+        </div>
+        <div class="summary-cards">
+          <div class="sum-card">
+            <div class="sum-card-label">Total Invested</div>
+            <div class="sum-card-value">₹1,20,000</div>
+            <div class="sum-card-change up">Across 3 products</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-card-label">Current Value</div>
+            <div class="sum-card-value">₹1,30,080</div>
+            <div class="sum-card-change up">↑ ₹10,080 profit</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-card-label">Returns</div>
+            <div class="sum-card-value">8.4%</div>
+            <div class="sum-card-change up">Annualised</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-card-label">Next SIP Date</div>
+            <div class="sum-card-value">10 Sep</div>
+            <div class="sum-card-change">₹5,000 due</div>
+          </div>
+        </div>
+        <div class="accounts-row">
+          <div class="card-panel">
+            <div class="card-panel-header">
+              <h3 class="card-panel-title">Mutual Funds — SIP</h3>
+              <span class="up" style="font-family:-apple-system,sans-serif;font-size:13px">↑ 12.4%</span>
+            </div>
+            <div style="padding:20px">
+              <div class="txn-row" style="padding:12px 0;border-bottom:1px solid var(--border)">
+                <div class="txn-info"><div class="txn-name">Nexus Bluechip Fund</div><div class="txn-date">SIP ₹3,000/month · Since Jan 2024</div></div>
+                <div class="txn-amount up">₹42,300</div>
+              </div>
+              <div class="txn-row" style="padding:12px 0">
+                <div class="txn-info"><div class="txn-name">Nexus Mid-Cap Growth</div><div class="txn-date">SIP ₹2,000/month · Since Mar 2024</div></div>
+                <div class="txn-amount up">₹28,780</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-panel">
+            <div class="card-panel-header">
+              <h3 class="card-panel-title">Fixed Deposit</h3>
+              <span style="font-family:-apple-system,sans-serif;font-size:13px;color:var(--text-soft)">6.80% p.a.</span>
+            </div>
+            <div style="padding:20px">
+              <div class="txn-row" style="padding:12px 0">
+                <div class="txn-info"><div class="txn-name">FD — 12 months</div><div class="txn-date">Matures 14 Mar 2027 · ₹5,680 interest</div></div>
+                <div class="txn-amount">₹1,00,000</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-panel">
+            <div class="card-panel-header">
+              <h3 class="card-panel-title">New Investment</h3>
+            </div>
+            <div style="padding:20px;display:flex;flex-direction:column;gap:10px">
+              <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showToast('Opening SIP wizard...', 'info')">📈 Start a new SIP</button>
+              <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showToast('Opening FD booking...', 'info')">🏦 Book a Fixed Deposit</button>
+              <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showToast('Opening Gold investment...', 'info')">🥇 Digital Gold</button>
+              <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showToast('Opening NPS account...', 'info')">🎯 NPS Pension Fund</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOANS SECTION -->
+      <div id="section-loans" class="hidden">
+        <div class="dash-greeting">
+          <h2>Loans & Credit</h2>
+          <p>Manage your existing loans or apply for a new one</p>
+        </div>
+        <div class="summary-cards">
+          <div class="sum-card">
+            <div class="sum-card-label">Outstanding Loans</div>
+            <div class="sum-card-value">₹32,40,000</div>
+            <div class="sum-card-change">Home loan balance</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-card-label">Monthly EMI</div>
+            <div class="sum-card-value">₹28,500</div>
+            <div class="sum-card-change">Due on 1st every month</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-card-label">Loan Tenure Left</div>
+            <div class="sum-card-value">14 yrs</div>
+            <div class="sum-card-change">168 EMIs remaining</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-card-label">Pre-closure Amount</div>
+            <div class="sum-card-value">₹32,10,000</div>
+            <div class="sum-card-change up">Save ₹8.2L in interest</div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="card-panel">
+            <div class="card-panel-header">
+              <h3 class="card-panel-title">Home Loan — HL2023/04821</h3>
+            </div>
+            <div style="padding:24px">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
+                <div><div class="sum-card-label">Principal</div><div class="sum-card-value" style="font-size:18px">₹40,00,000</div></div>
+                <div><div class="sum-card-label">Interest Rate</div><div class="sum-card-value" style="font-size:18px">8.45%</div></div>
+                <div><div class="sum-card-label">Disbursed</div><div class="sum-card-value" style="font-size:18px">14 Mar 2024</div></div>
+                <div><div class="sum-card-label">Property</div><div class="sum-card-value" style="font-size:18px">Chennai</div></div>
+              </div>
+              <div style="background:var(--mist);border-radius:var(--radius);padding:16px;margin-bottom:16px">
+                <div style="display:flex;justify-content:space-between;font-family:-apple-system,sans-serif;font-size:13px;margin-bottom:8px">
+                  <span style="color:var(--text-soft)">Loan repaid</span>
+                  <span style="color:var(--navy);font-weight:600">₹7,60,000 / ₹40,00,000</span>
+                </div>
+                <div style="background:var(--border);border-radius:10px;height:8px;overflow:hidden">
+                  <div style="background:var(--gold);height:100%;width:19%;border-radius:10px"></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px">
+                <button class="btn btn-navy" onclick="showToast('EMI payment processing...', 'success')">Pay EMI Now</button>
+                <button class="btn btn-outline" style="border-color:var(--border);color:var(--text)" onclick="showToast('Statement downloading...', 'info')">Download Statement</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card-panel">
+              <div class="card-panel-header"><h3 class="card-panel-title">Apply for Loan</h3></div>
+              <div style="padding:20px;display:flex;flex-direction:column;gap:10px">
+                <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showToast('Opening Personal Loan application...', 'info')">💼 Personal Loan — up to ₹25L</button>
+                <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showToast('Opening Car Loan application...', 'info')">🚗 Car Loan — from 9.2%</button>
+                <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showToast('Opening Education Loan...', 'info')">🎓 Education Loan</button>
+                <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showToast('Opening Gold Loan...', 'info')">🥇 Gold Loan — instant</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE SECTION -->
+      <div id="section-profile" class="hidden">
+        <div class="profile-header">
+          <div class="profile-avatar-lg">AK</div>
+          <div>
+            <div class="profile-name">Arjun Krishnamurthy</div>
+            <div class="profile-since">Customer since January 2018 · ID: NXCUST-4821 · Chennai Branch</div>
+          </div>
+        </div>
+        <div class="profile-grid">
+          <div class="card-panel">
+            <div class="card-panel-header"><h3 class="card-panel-title">Personal Information</h3><a class="card-panel-action" onclick="showToast('Edit mode enabled', 'info')">Edit</a></div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:16px">
+              <div><div class="sum-card-label">Full Name</div><div style="font-family:-apple-system,sans-serif;font-size:15px">Arjun Krishnamurthy</div></div>
+              <div><div class="sum-card-label">Date of Birth</div><div style="font-family:-apple-system,sans-serif;font-size:15px">14 August 1990</div></div>
+              <div><div class="sum-card-label">PAN</div><div style="font-family:-apple-system,sans-serif;font-size:15px">ABCPK1234D</div></div>
+              <div><div class="sum-card-label">Aadhaar (linked)</div><div style="font-family:-apple-system,sans-serif;font-size:15px">•••• •••• 3421</div></div>
+              <div><div class="sum-card-label">Occupation</div><div style="font-family:-apple-system,sans-serif;font-size:15px">Software Engineer</div></div>
+            </div>
+          </div>
+          <div class="card-panel">
+            <div class="card-panel-header"><h3 class="card-panel-title">Contact Details</h3><a class="card-panel-action" onclick="showToast('Edit mode enabled', 'info')">Edit</a></div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:16px">
+              <div><div class="sum-card-label">Mobile</div><div style="font-family:-apple-system,sans-serif;font-size:15px">+91 98400 •••••</div></div>
+              <div><div class="sum-card-label">Email</div><div style="font-family:-apple-system,sans-serif;font-size:15px">arjun.k@email.com</div></div>
+              <div><div class="sum-card-label">Address</div><div style="font-family:-apple-system,sans-serif;font-size:15px;line-height:1.5">42, Anna Nagar West,<br>Chennai — 600 040, Tamil Nadu</div></div>
+            </div>
+          </div>
+          <div class="card-panel">
+            <div class="card-panel-header"><h3 class="card-panel-title">Security Settings</h3></div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:12px">
+              <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showModal('change-password')">🔑 Change Login Password</button>
+              <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showToast('MPIN change initiated', 'info')">🔢 Change Transaction MPIN</button>
+              <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showToast('Viewing active sessions...', 'info')">📱 Manage Devices</button>
+              <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showToast('2FA settings...', 'info')">🛡️ Two-Factor Authentication</button>
+            </div>
+          </div>
+          <div class="card-panel">
+            <div class="card-panel-header"><h3 class="card-panel-title">Preferences</h3></div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:12px">
+              <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showToast('Notification settings...', 'info')">🔔 Notification Preferences</button>
+              <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showToast('Language settings...', 'info')">🌐 Language — English</button>
+              <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px" onclick="showToast('Statement settings...', 'info')">📄 e-Statement Settings</button>
+              <button class="alt-btn" style="justify-content:flex-start;gap:12px;padding:14px;color:var(--danger);border-color:var(--danger)" onclick="handleLogout()">🚪 Sign Out</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     MODALS
+════════════════════════════════════════════════════════ -->
+
+<!-- Transfer confirm modal -->
+<div class="modal-overlay" id="modal-transfer-confirm">
+  <div class="modal">
+    <h3 class="modal-title">Confirm Transfer</h3>
+    <p class="modal-sub">Please review the details before proceeding.</p>
+    <div style="background:var(--mist);border-radius:var(--radius);padding:20px;margin-bottom:8px">
+      <div class="stat-row" style="border-color:var(--border)">
+        <span class="stat-label" style="color:var(--text-soft)">To</span>
+        <span style="font-family:-apple-system,sans-serif;font-size:14px;color:var(--text)">Priya Sharma — SBI •••• 3821</span>
+      </div>
+      <div class="stat-row" style="border-color:var(--border)">
+        <span class="stat-label" style="color:var(--text-soft)">Amount</span>
+        <span style="font-size:20px;color:var(--navy)">₹10,000</span>
+      </div>
+      <div class="stat-row" style="border-color:var(--border)">
+        <span class="stat-label" style="color:var(--text-soft)">Method</span>
+        <span style="font-family:-apple-system,sans-serif;font-size:14px">IMPS · Instant</span>
+      </div>
+      <div class="stat-row" style="border-color:transparent">
+        <span class="stat-label" style="color:var(--text-soft)">Charges</span>
+        <span style="font-family:-apple-system,sans-serif;font-size:14px">₹0 (Free)</span>
+      </div>
+    </div>
+    <p style="font-family:-apple-system,sans-serif;font-size:13px;color:var(--text-soft);margin-bottom:4px">Enter your 6-digit Transaction PIN to authorise</p>
+    <div class="otp-inputs">
+      <input class="otp-digit" type="password" maxlength="1" data-bf-field="txn-pin-1" oninput="moveOTP(this,1)" />
+      <input class="otp-digit" type="password" maxlength="1" data-bf-field="txn-pin-2" oninput="moveOTP(this,2)" />
+      <input class="otp-digit" type="password" maxlength="1" data-bf-field="txn-pin-3" oninput="moveOTP(this,3)" />
+      <input class="otp-digit" type="password" maxlength="1" data-bf-field="txn-pin-4" oninput="moveOTP(this,4)" />
+      <input class="otp-digit" type="password" maxlength="1" data-bf-field="txn-pin-5" oninput="moveOTP(this,5)" />
+      <input class="otp-digit" type="password" maxlength="1" data-bf-field="txn-pin-6" oninput="moveOTP(this,6)" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('transfer-confirm')">Cancel</button>
+      <button class="btn-confirm" onclick="confirmTransfer()">Confirm Transfer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Forgot password modal -->
+<div class="modal-overlay" id="modal-forgot">
+  <div class="modal">
+    <h3 class="modal-title">Reset Password</h3>
+    <p class="modal-sub">Enter your registered mobile number or email. We'll send a verification code.</p>
+    <div class="form-group">
+      <label>Mobile / Email</label>
+      <input type="text" class="form-input" data-bf-field="reset-contact" placeholder="Registered mobile or email" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('forgot')">Cancel</button>
+      <button class="btn-confirm" onclick="closeModal('forgot');showToast('OTP sent to your registered mobile', 'success')">Send OTP</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change password modal -->
+<div class="modal-overlay" id="modal-change-password">
+  <div class="modal">
+    <h3 class="modal-title">Change Password</h3>
+    <p class="modal-sub">Choose a strong password you haven't used before.</p>
+    <div class="form-group">
+      <label>Current Password</label>
+      <input type="password" class="form-input" data-bf-field="current-password" placeholder="Enter current password" />
+    </div>
+    <div class="form-group">
+      <label>New Password</label>
+      <input type="password" class="form-input" data-bf-field="new-password" placeholder="Min 8 characters" />
+    </div>
+    <div class="form-group">
+      <label>Confirm New Password</label>
+      <input type="password" class="form-input" data-bf-field="confirm-password" placeholder="Repeat new password" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('change-password')">Cancel</button>
+      <button class="btn-confirm" onclick="closeModal('change-password');showToast('Password changed successfully', 'success')">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast-msg">
+  <span id="toast-icon">ℹ️</span>
+  <span id="toast-text"></span>
+</div>
+
+<script>
+// ── Hardcoded credentials ───────────────────────────────────────
+var USERS = [
+  { id: 'NXCUST-4821', username: 'arjun.k', password: 'password123' },
+  { id: 'NXCUST-9034', username: 'test@nexusbank.com', password: 'test123' },
+  { id: 'NXCUST-0001', username: 'demo', password: 'demo' },
+];
+
+// ── Page routing ────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  var target = document.getElementById('page-' + name);
+  if (target) target.classList.add('active');
+  if (name === 'dashboard') {
+    buildChart();
+    buildStatements();
+  }
+}
+
+// ── Dashboard sections ──────────────────────────────────────────
+function showDashSection(name) {
+  var sections = ['overview','transfer','statements','investments','loans','profile'];
+  sections.forEach(function(s) {
+    var el = document.getElementById('section-' + s);
+    if (el) el.classList.add('hidden');
+    var nav = document.getElementById('nav-' + s);
+    if (nav) nav.classList.remove('active');
+  });
+  var target = document.getElementById('section-' + name);
+  if (target) target.classList.remove('hidden');
+  var navTarget = document.getElementById('nav-' + name);
+  if (navTarget) navTarget.classList.add('active');
+  if (name === 'statements') buildStatements();
+}
+
+// ── Login ───────────────────────────────────────────────────────
+function handleLogin() {
+  var un = document.getElementById('login-username').value.trim();
+  var pw = document.getElementById('login-password').value;
+  var unErr = document.getElementById('err-username');
+  var pwErr = document.getElementById('err-password');
+
+  unErr.classList.add('hidden');
+  pwErr.classList.add('hidden');
+
+  var valid = true;
+  if (!un) { unErr.classList.remove('hidden'); valid = false; }
+  if (!pw) { pwErr.classList.remove('hidden'); valid = false; }
+  if (!valid) return;
+
+  var user = USERS.find(function(u) {
+    return (u.username === un || u.id === un) && u.password === pw;
+  });
+
+  if (!user) {
+    pwErr.textContent = 'Incorrect Customer ID or password. Please try again.';
+    pwErr.classList.remove('hidden');
+    return;
+  }
+
+  // Identify user in Xylium SDK after successful login
+  if (window.XyliumBF) {
+    window.XyliumBF.identify(user.id);
+  }
+
+  showPage('dashboard');
+  showToast('Welcome back, Arjun. Last login: Yesterday 11:42 PM', 'success');
+}
+
+function handleLogout() {
+  if (window.XyliumBF) window.XyliumBF._debugFlushNow();
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+  showPage('landing');
+}
+
+// ── Password toggle ─────────────────────────────────────────────
+function togglePassword() {
+  var inp = document.getElementById('login-password');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// ── Modals ──────────────────────────────────────────────────────
+function showModal(name) {
+  document.getElementById('modal-' + name).classList.add('open');
+}
+
+function closeModal(name) {
+  document.getElementById('modal-' + name).classList.remove('open');
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+// ── OTP inputs ──────────────────────────────────────────────────
+function moveOTP(input, index) {
+  if (input.value.length === 1 && index < 6) {
+    var next = document.querySelector('[data-bf-field="txn-pin-' + (index + 1) + '"]');
+    if (next) next.focus();
+  }
+}
+
+// ── Transfer ────────────────────────────────────────────────────
+function confirmTransfer() {
+  closeModal('transfer-confirm');
+  showToast('₹10,000 transferred successfully to Priya Sharma', 'success');
+}
+
+function updateTransferType(val) {
+  var bene = document.getElementById('transfer-beneficiary-section');
+  var upi = document.getElementById('upi-section');
+  if (val === 'upi') {
+    bene.classList.add('hidden');
+    upi.classList.remove('hidden');
+  } else {
+    bene.classList.remove('hidden');
+    upi.classList.add('hidden');
+  }
+}
+
+function selectBene(el, name, acct) {
+  document.querySelectorAll('.bene-item').forEach(function(b) { b.classList.remove('selected'); });
+  el.classList.add('selected');
+  showToast(name + ' selected as beneficiary', 'info');
+}
+
+// ── Toast ───────────────────────────────────────────────────────
+var toastTimer;
+function showToast(msg, type) {
+  var toast = document.getElementById('toast-msg');
+  var icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  document.getElementById('toast-icon').textContent = icons[type] || 'ℹ️';
+  document.getElementById('toast-text').textContent = msg;
+  toast.className = 'toast ' + (type || 'info') + ' show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 3500);
+}
+
+// ── Spend chart ─────────────────────────────────────────────────
+function buildChart() {
+  var el = document.getElementById('spend-chart');
+  if (!el || el.children.length > 0) return;
+  var months = ['Apr','May','Jun','Jul','Aug','Sep'];
+  var income =  [80000, 95000, 95000, 95000, 95000, 95000];
+  var expense = [55000, 62000, 48000, 70000, 58000, 38240];
+  var maxVal = Math.max.apply(null, income);
+  months.forEach(function(m, i) {
+    var grp = document.createElement('div');
+    grp.className = 'chart-bar-group';
+    var iH = Math.round((income[i] / maxVal) * 80);
+    var eH = Math.round((expense[i] / maxVal) * 80);
+    grp.innerHTML =
+      '<div class="bar-income" style="height:' + iH + 'px" title="Income ₹' + income[i].toLocaleString('en-IN') + '"></div>' +
+      '<div class="bar-expense" style="height:' + eH + 'px" title="Spend ₹' + expense[i].toLocaleString('en-IN') + '"></div>' +
+      '<div class="chart-month">' + m + '</div>';
+    el.appendChild(grp);
+  });
+}
+
+// ── Statements ──────────────────────────────────────────────────
+var STATEMENT_DATA = [
+  { date:'04 Sep 2026', desc:'Big Bazaar — Groceries', ref:'TXN2026090401', type:'Debit',  amt:-2840,   bal:284310, status:'Completed' },
+  { date:'03 Sep 2026', desc:'Salary Credit — TechCorp', ref:'SAL2026090301', type:'Credit', amt:95000, bal:287150, status:'Completed' },
+  { date:'02 Sep 2026', desc:'TNEB Electricity Bill', ref:'BILL2026090201', type:'Debit',  amt:-1240,   bal:192150, status:'Completed' },
+  { date:'01 Sep 2026', desc:'Home Loan EMI', ref:'EMI2026090101', type:'Debit',  amt:-28500,  bal:193390, status:'Completed' },
+  { date:'30 Aug 2026', desc:'Amazon — Electronics', ref:'AMZ2026083001', type:'Debit',  amt:-12499,  bal:221890, status:'Pending' },
+  { date:'28 Aug 2026', desc:'Swiggy — Food Delivery', ref:'SWG2026082801', type:'Debit',  amt:-840,    bal:234389, status:'Completed' },
+  { date:'25 Aug 2026', desc:'UPI — Ravi Kumar', ref:'UPI2026082501', type:'Debit',  amt:-5000,   bal:235229, status:'Completed' },
+  { date:'20 Aug 2026', desc:'FD Interest Credit', ref:'FDI2026082001', type:'Credit', amt:565,   bal:240229, status:'Completed' },
+  { date:'15 Aug 2026', desc:'Zomato — Food', ref:'ZOM2026081501', type:'Debit',  amt:-620,    bal:239664, status:'Completed' },
+  { date:'10 Aug 2026', desc:'Insurance Premium', ref:'INS2026081001', type:'Debit',  amt:-8400,   bal:240284, status:'Completed' },
+  { date:'05 Aug 2026', desc:'Netflix Subscription', ref:'NTF2026080501', type:'Debit',  amt:-649,    bal:248684, status:'Completed' },
+  { date:'03 Aug 2026', desc:'Salary Credit — TechCorp', ref:'SAL2026080301', type:'Credit', amt:95000, bal:249333, status:'Completed' },
+];
+
+function buildStatements() {
+  var tbody = document.getElementById('statements-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  STATEMENT_DATA.forEach(function(row) {
+    var color = row.amt > 0 ? 'var(--success)' : 'var(--text)';
+    var amtStr = row.amt > 0 ? '+₹' + row.amt.toLocaleString('en-IN') : '−₹' + Math.abs(row.amt).toLocaleString('en-IN');
+    var statusClass = row.status === 'Completed' ? 'status-success' : 'status-pending';
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + row.date + '</td>' +
+      '<td><span class="txn-name">' + row.desc + '</span></td>' +
+      '<td><span class="text-xs" style="color:var(--text-soft);font-family:-apple-system,sans-serif">' + row.ref + '</span></td>' +
+      '<td><span class="text-xs txn-status ' + (row.type==='Credit'?'status-success':'') + '" style="background:transparent;padding:0;font-family:-apple-system,sans-serif">' + row.type + '</span></td>' +
+      '<td style="color:' + color + ';font-weight:500;font-family:-apple-system,sans-serif">' + amtStr + '</td>' +
+      '<td style="font-family:-apple-system,sans-serif">₹' + row.bal.toLocaleString('en-IN') + '</td>' +
+      '<td><span class="txn-status ' + statusClass + '">' + row.status + '</span></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Init ────────────────────────────────────────────────────────
+// Behavioural capture (mouse/keystroke dynamics, device fingerprint,
+// battery, network info, etc.) only starts if the visitor explicitly
+// agrees when asked. No capture happens before this point.
+window.addEventListener('load', function() {
+  if (!window.XyliumBF) return;
+  var consented = window.confirm(
+    'This site uses behavioural analytics for fraud protection ' +
+    '(mouse/typing patterns, device and network info). Allow this?'
+  );
+  if (consented) {
+    window.XyliumBF.grantConsent();
+  } else {
+    console.log('[XyliumBF v2] user declined consent — capture will not start');
+  }
+});
+</script>
+</body>
+</html>

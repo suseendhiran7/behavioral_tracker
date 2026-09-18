@@ -26,6 +26,23 @@
     return 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2);
   }
 
+  // Reuse sessionId across page refreshes within the same tab.
+  // sessionStorage is cleared on tab close — a new tab always gets a fresh
+  // session, but F5 / reload keeps the same sessionId so the backend updates
+  // one session document instead of creating a duplicate on every refresh.
+  function getOrCreateSessionId() {
+    var STORAGE_KEY = 'xylium_sid_' + config.tenantId;
+    try {
+      var existing = sessionStorage.getItem(STORAGE_KEY);
+      if (existing) return existing;
+      var fresh = makeSessionId();
+      sessionStorage.setItem(STORAGE_KEY, fresh);
+      return fresh;
+    } catch (e) {
+      return makeSessionId();
+    }
+  }
+
   function deviceFingerprint() {
     var raw = [
       screen.width + 'x' + screen.height,
@@ -43,7 +60,7 @@
   }
 
   var state = {
-    sessionId: makeSessionId(),
+    sessionId: getOrCreateSessionId(),
     userId: null,
     consentGiven: !config.requireConsent,
     buffer: [],
@@ -113,7 +130,7 @@
   // ---------- 5. Capture: mouse ----------
   var lastMouseSample = 0;
 
-  // 5a vars — declared here so mousemove listener can close over them
+  // 5a vars
   var firstMouseMoveDone = false;
   var firstKeypressDone = false;
   var pageLoadTime = performance.timing ? performance.timing.navigationStart : Date.now();
@@ -232,7 +249,7 @@
       durationMs: Math.round(performance.now() - trajectoryStart.t),
     });
 
-    // ---------- 5f. Overshoot detection (runs on mouseup using trajectory data) ----------
+    // ---------- 5f. Overshoot detection ----------
     var OVERSHOOT_LOOKBACK = 20;
     var clickX = e.clientX;
     var clickY = e.clientY;
@@ -581,6 +598,82 @@
     }, true);
   });
 
+  // ---------- 8b. Form interaction signals ----------
+  var fieldFocusSequence = [];
+  var fieldFocusStartTimes = Object.create(null);
+  var fieldTimeAccumulator = Object.create(null);
+  var currentFocusedField = null;
+
+  function onFieldFocus(field) {
+    if (!field) return;
+    fieldFocusSequence.push(field);
+    fieldFocusStartTimes[field] = performance.now();
+    currentFocusedField = field;
+    if (!fieldTimeAccumulator[field]) {
+      fieldTimeAccumulator[field] = { totalMs: 0, focusCount: 0 };
+    }
+    fieldTimeAccumulator[field].focusCount += 1;
+  }
+
+  function onFieldBlur(field) {
+    if (!field) return;
+    var startTime = fieldFocusStartTimes[field];
+    if (startTime !== undefined) {
+      var spentMs = Math.round(performance.now() - startTime);
+      if (fieldTimeAccumulator[field]) {
+        fieldTimeAccumulator[field].totalMs += spentMs;
+      }
+      delete fieldFocusStartTimes[field];
+    }
+    currentFocusedField = null;
+    var acc = fieldTimeAccumulator[field];
+    if (acc) {
+      pushEvent({
+        type: 'field_time_spent',
+        field: field,
+        focusCount: acc.focusCount,
+        totalTimeMs: acc.totalMs,
+        avgTimePerFocusMs: acc.focusCount > 0 ? Math.round(acc.totalMs / acc.focusCount) : 0,
+      });
+    }
+  }
+
+  function emitFocusOrder() {
+    if (fieldFocusSequence.length < 2) return;
+    var seen = [];
+    var jumpCount = 0;
+    var isLinear = true;
+    for (var i = 0; i < fieldFocusSequence.length; i++) {
+      var f = fieldFocusSequence[i];
+      if (seen.indexOf(f) !== -1) {
+        jumpCount++;
+        isLinear = false;
+      } else {
+        seen.push(f);
+      }
+    }
+    pushEvent({
+      type: 'field_focus_order',
+      sequence: fieldFocusSequence.slice(),
+      totalFields: seen.length,
+      isLinear: isLinear,
+      jumpCount: jumpCount,
+    });
+  }
+
+  document.addEventListener('focus', function (e) {
+    var field = fieldIdFor(e.target);
+    if (!field) return;
+    onFieldFocus(field);
+    emitFocusOrder();
+  }, true);
+
+  document.addEventListener('blur', function (e) {
+    var field = fieldIdFor(e.target);
+    if (!field) return;
+    onFieldBlur(field);
+  }, true);
+
   // ---------- 9. Visibility + resize ----------
   document.addEventListener('visibilitychange', function () {
     pushEvent({ type: 'visibilitychange', state: document.visibilityState });
@@ -588,6 +681,95 @@
   window.addEventListener('resize', function () {
     pushEvent({ type: 'resize', w: window.innerWidth, h: window.innerHeight });
   });
+
+  // ---------- 9b. Browser back-button usage ----------
+  var backCount = 0;
+  var pageArrivalTime = performance.now();
+  var lastPopDirection = null;
+  var wentBackAt = null;
+
+  window.addEventListener('popstate', function (e) {
+    var now = performance.now();
+    var timeOnPageMs = Math.round(now - pageArrivalTime);
+    var isPanicBack = timeOnPageMs < 2000;
+    var returnedAfterBack = false;
+
+    if (wentBackAt !== null && lastPopDirection === 'back') {
+      returnedAfterBack = true;
+      lastPopDirection = 'forward';
+    } else {
+      backCount += 1;
+      lastPopDirection = 'back';
+      wentBackAt = now;
+    }
+
+    pushEvent({
+      type: 'back_navigation',
+      backCount: backCount,
+      timeOnPageMs: timeOnPageMs,
+      isPanicBack: isPanicBack,
+      returnedAfterBack: returnedAfterBack,
+    });
+
+    pageArrivalTime = now;
+  });
+
+  // ---------- 9c. Time of day (normalized to user's local timezone) ----------
+  // Called from grantConsent() so consent is always given before pushing
+  function captureTimeContext() {
+    var now = new Date();
+    var localHour      = now.getHours();
+    var localMinute    = now.getMinutes();
+    var localDayOfWeek = now.getDay();
+    var isWeekend      = localDayOfWeek === 0 || localDayOfWeek === 6;
+    var DAY_NAMES      = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+    function getTimeSlot(hour) {
+      if (hour >= 0  && hour < 5)  return 'late_night';
+      if (hour >= 5  && hour < 8)  return 'early_morning';
+      if (hour >= 8  && hour < 12) return 'morning';
+      if (hour >= 12 && hour < 14) return 'midday';
+      if (hour >= 14 && hour < 17) return 'afternoon';
+      if (hour >= 17 && hour < 21) return 'evening';
+      return 'night';
+    }
+
+    var tzOffsetMinutes = -now.getTimezoneOffset();
+    var tzName = 'unknown';
+    try { tzName = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
+
+    pushCriticalEvent({
+      type: 'time_context',
+      localHour:       localHour,
+      localMinute:     localMinute,
+      localDayOfWeek:  localDayOfWeek,
+      localDayName:    DAY_NAMES[localDayOfWeek],
+      timeSlot:        getTimeSlot(localHour),
+      isWeekend:       isWeekend,
+      tzName:          tzName,
+      tzOffsetMinutes: tzOffsetMinutes,
+      utcHour:         now.getUTCHours(),
+    });
+  }
+
+  // ---------- 9d. Page entry method ----------
+  // Called from grantConsent() so consent is always given before pushing
+  function capturePageEntryMethod() {
+    var navType = null;
+    if (window.performance && window.performance.getEntriesByType) {
+      var navEntries = window.performance.getEntriesByType('navigation');
+      if (navEntries.length > 0) navType = navEntries[0].type;
+    } else if (window.performance && window.performance.navigation) {
+      var typeMap = { 0: 'navigate', 1: 'reload', 2: 'back_forward' };
+      navType = typeMap[window.performance.navigation.type] || 'other';
+    }
+    if (!navType) return;
+    pushCriticalEvent({
+      type: 'page_entry_method',
+      navType: navType,
+      isBackForward: navType === 'back_forward',
+    });
+  }
 
   // ---------- 10. Paste / copy ----------
   document.addEventListener('copy', function (e) {
@@ -611,124 +793,6 @@
       pastedFromKeyboard: !e.isTrusted,
     });
   });
-
-
-    // ---------- 8b. Form interaction signals ----------
-  // Tracks field focus order and time spent on each field.
-  //
-  // Field focus order — did the user tab normally (username → password → submit)
-  // or jump around randomly (password first, back to username, etc.)?
-  // Bots often focus fields in a non-human order or focus only one field.
-  //
-  // Time spent on each field — how long was each field active?
-  // Humans spend more time on password fields (typing carefully).
-  // Bots spend equal time on all fields or near-zero time.
-  //
-  // Wire format:
-  //   { type: 'field_focus_order',
-  //     sequence: ['username', 'password', 'submit'],  -- order fields were focused
-  //     totalFields,        -- how many unique fields were focused
-  //     isLinear,           -- true if focused in DOM order without jumping back
-  //     jumpCount }         -- how many times they went back to an already-visited field
-  //
-  //   { type: 'field_time_spent',
-  //     field,              -- which field
-  //     focusCount,         -- how many times this field was focused
-  //     totalTimeMs,        -- total ms spent in this field across all focuses
-  //     avgTimePerFocusMs } -- mean time per focus visit
-
-  var fieldFocusSequence = [];          // ordered list of field names as focused
-  var fieldFocusStartTimes = Object.create(null);  // field -> performance.now() when focused
-  var fieldTimeAccumulator = Object.create(null);  // field -> { totalMs, focusCount }
-  var currentFocusedField = null;
-
-  function onFieldFocus(field) {
-    if (!field) return;
-
-    // Record sequence
-    fieldFocusSequence.push(field);
-
-    // Start timer for this field
-    fieldFocusStartTimes[field] = performance.now();
-    currentFocusedField = field;
-
-    // Init accumulator if first time seeing this field
-    if (!fieldTimeAccumulator[field]) {
-      fieldTimeAccumulator[field] = { totalMs: 0, focusCount: 0 };
-    }
-    fieldTimeAccumulator[field].focusCount += 1;
-  }
-
-  function onFieldBlur(field) {
-    if (!field) return;
-
-    // Accumulate time spent in this field
-    var startTime = fieldFocusStartTimes[field];
-    if (startTime !== undefined) {
-      var spentMs = Math.round(performance.now() - startTime);
-      if (fieldTimeAccumulator[field]) {
-        fieldTimeAccumulator[field].totalMs += spentMs;
-      }
-      delete fieldFocusStartTimes[field];
-    }
-
-    currentFocusedField = null;
-
-    // Emit field_time_spent on every blur so backend gets incremental updates
-    var acc = fieldTimeAccumulator[field];
-    if (acc) {
-      pushEvent({
-        type: 'field_time_spent',
-        field: field,
-        focusCount: acc.focusCount,
-        totalTimeMs: acc.totalMs,
-        avgTimePerFocusMs: acc.focusCount > 0 ? Math.round(acc.totalMs / acc.focusCount) : 0,
-      });
-    }
-  }
-
-  // Emit field_focus_order summary whenever a new field is focused
-  // so backend always has the latest sequence — not just at end of session.
-  function emitFocusOrder() {
-    if (fieldFocusSequence.length < 2) return;
-
-    // Count jumps — going back to an already-visited field
-    var seen = [];
-    var jumpCount = 0;
-    var isLinear = true;
-
-    for (var i = 0; i < fieldFocusSequence.length; i++) {
-      var f = fieldFocusSequence[i];
-      if (seen.indexOf(f) !== -1) {
-        jumpCount++;
-        isLinear = false;
-      } else {
-        seen.push(f);
-      }
-    }
-
-    pushEvent({
-      type: 'field_focus_order',
-      sequence: fieldFocusSequence.slice(), // copy so mutations dont affect sent data
-      totalFields: seen.length,
-      isLinear: isLinear,
-      jumpCount: jumpCount,
-    });
-  }
-
-  // Hook into the existing focus/blur listeners via separate capture listeners
-  document.addEventListener('focus', function (e) {
-    var field = fieldIdFor(e.target);
-    if (!field) return;
-    onFieldFocus(field);
-    emitFocusOrder();
-  }, true);
-
-  document.addEventListener('blur', function (e) {
-    var field = fieldIdFor(e.target);
-    if (!field) return;
-    onFieldBlur(field);
-  }, true);
 
   // ---------- 11. Device snapshot ----------
   function detectDeviceType() {
@@ -769,6 +833,127 @@
       hardwareConcurrency: navigator.hardwareConcurrency || null,
       deviceType: detectDeviceType(),
       osFamily: detectOsFamily(),
+    });
+  }
+
+  // ---------- 11c. Battery status ----------
+  // navigator.getBattery() is only available on secure contexts in some
+  // browsers (and removed entirely in others, e.g. Firefox/Safari), so this
+  // must be feature-detected and is best-effort only.
+  function captureBatterySnapshot() {
+    if (!state.consentGiven) return;
+    if (typeof navigator.getBattery !== 'function') return;
+    navigator.getBattery().then(function (battery) {
+      if (!state.consentGiven) return; // consent may have been revoked while the promise was pending
+      pushCriticalEvent({
+        type: 'battery_snapshot',
+        charging: battery.charging,
+        level: Math.round(battery.level * 100),
+        chargingTime: isFinite(battery.chargingTime) ? battery.chargingTime : null,
+        dischargingTime: isFinite(battery.dischargingTime) ? battery.dischargingTime : null,
+      });
+    }).catch(function () { /* battery API blocked or unavailable — ignore */ });
+  }
+
+  // ---------- 11d. Network / connection info ----------
+  // navigator.connection is non-standard (Chromium-only today) so this is
+  // also best-effort and simply omitted where unsupported.
+  function captureConnectionSnapshot() {
+    if (!state.consentGiven) return;
+    var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return;
+    pushCriticalEvent({
+      type: 'connection_snapshot',
+      effectiveType: conn.effectiveType || null,
+      downlinkMbps: typeof conn.downlink === 'number' ? conn.downlink : null,
+      rttMs: typeof conn.rtt === 'number' ? conn.rtt : null,
+      saveData: !!conn.saveData,
+    });
+    if (typeof conn.addEventListener === 'function') {
+      conn.addEventListener('change', function () {
+        if (!state.consentGiven) return;
+        pushEvent({
+          type: 'connection_change',
+          effectiveType: conn.effectiveType || null,
+          downlinkMbps: typeof conn.downlink === 'number' ? conn.downlink : null,
+          rttMs: typeof conn.rtt === 'number' ? conn.rtt : null,
+          saveData: !!conn.saveData,
+        });
+      });
+    }
+  }
+
+
+    // ---------- 11b. Plugin / MIME type list ----------
+  // Captures the browser's installed plugins and supported MIME types.
+  // This is a classic fingerprinting signal — real browsers have a rich,
+  // consistent plugin list (PDF viewer, etc). Headless browsers and bots
+  // often have an empty or suspiciously minimal plugin list.
+  //
+  // Modern Chrome/Edge/Firefox deliberately return a reduced, generic plugin
+  // list for privacy — so we don't rely on this alone, but it's still useful:
+  //   - navigator.plugins.length === 0 is a strong headless/bot signal
+  //   - The exact plugin names+order act as a stable per-browser fingerprint
+  //   - Automation tools (Puppeteer/Selenium) often show telltale gaps
+  //
+  // Wire format:
+  //   { type: 'plugin_snapshot',
+  //     pluginCount,        -- navigator.plugins.length
+  //     mimeTypeCount,      -- navigator.mimeTypes.length
+  //     pluginNames,        -- array of plugin names (capped, sorted)
+  //     mimeTypes,          -- array of mime type strings (capped, sorted)
+  //     hasPdfViewer,       -- true if a PDF-related plugin/mimetype exists
+  //     pluginsHash }       -- simple hash of the full list for fast comparison
+
+  function capturePluginSnapshot() {
+    var pluginNames = [];
+    var mimeTypes = [];
+
+    try {
+      if (navigator.plugins && navigator.plugins.length) {
+        for (var i = 0; i < navigator.plugins.length; i++) {
+          pluginNames.push(navigator.plugins[i].name);
+        }
+      }
+    } catch (e) { /* some browsers block enumeration entirely */ }
+
+    try {
+      if (navigator.mimeTypes && navigator.mimeTypes.length) {
+        for (var j = 0; j < navigator.mimeTypes.length; j++) {
+          mimeTypes.push(navigator.mimeTypes[j].type);
+        }
+      }
+    } catch (e) { /* ignore */ }
+
+    pluginNames.sort();
+    mimeTypes.sort();
+
+    // Cap to avoid oversized payloads on browsers with long lists
+    var MAX_ITEMS = 30;
+    var cappedPlugins = pluginNames.slice(0, MAX_ITEMS);
+    var cappedMimes = mimeTypes.slice(0, MAX_ITEMS);
+
+    var hasPdfViewer =
+      pluginNames.some(function (n) { return /pdf/i.test(n); }) ||
+      mimeTypes.some(function (m) { return /pdf/i.test(m); });
+
+    // Simple djb2 hash of the combined list — cheap way to compare
+    // fingerprints across sessions without sending the full list every time
+    var raw = cappedPlugins.join(',') + '|' + cappedMimes.join(',');
+    var hash = 5381;
+    for (var k = 0; k < raw.length; k++) {
+      hash = (hash << 5) + hash + raw.charCodeAt(k);
+      hash = hash & hash;
+    }
+
+    pushCriticalEvent({
+      type: 'plugin_snapshot',
+      pluginCount: pluginNames.length,
+      mimeTypeCount: mimeTypes.length,
+      pluginNames: cappedPlugins,
+      mimeTypes: cappedMimes,
+      hasPdfViewer: hasPdfViewer,
+      pluginsHash: 'ph_' + Math.abs(hash),
     });
   }
 
@@ -860,13 +1045,30 @@
       console.log('[XyliumBF v2] consent granted, capture active');
       sendDeviceSnapshot();
       maybeCaptureGeo();
+      captureTimeContext();       // fires AFTER consent — always works
+      capturePageEntryMethod();   // fires AFTER consent — always works
+      capturePluginSnapshot();
+      captureBatterySnapshot();
+      captureConnectionSnapshot();
     },
-    revokeConsent: function () { state.consentGiven = false; state.buffer = []; console.log('[XyliumBF v2] consent revoked, capture stopped'); },
+    revokeConsent: function () {
+      state.consentGiven = false;
+      state.buffer = [];
+      console.log('[XyliumBF v2] consent revoked, capture stopped');
+    },
     requestGeo: function () { maybeCaptureGeo(); },
     getSessionId: function () { return state.sessionId; },
     _debugFlushNow: function () { flush(false); },
   };
 
   installAutofillWatcher();
-  if (state.consentGiven) { sendDeviceSnapshot(); maybeCaptureGeo(); }
+  if (state.consentGiven) {
+    sendDeviceSnapshot();
+    maybeCaptureGeo();
+    captureTimeContext();
+    capturePageEntryMethod();
+    capturePluginSnapshot();
+    captureBatterySnapshot();
+    captureConnectionSnapshot();
+  }
 })();
