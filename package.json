@@ -1,20 +1,19 @@
 {
-  "name": "xylium-ingestion-express",
-  "version": "0.1.0",
-  "description": "Xylium Behavioral Fingerprinting SDK — ingestion gateway (Express.js version)",
-  "license": "UNLICENSED",
+  "name": "xylium-ingestion",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Xylium BF collector: receives browser events (/collect) and trusted server-to-server identity links (/identify)",
   "main": "src/server.js",
-  "type": "commonjs",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "express-rate-limit": "^7.5.0",
-    "mongoose": "^8.9.5",
-    "zod": "^3.24.1"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "mongoose": "^8.5.0",
+    "zod": "^3.23.8"
   }
 }
