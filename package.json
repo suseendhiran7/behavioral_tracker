@@ -2,18 +2,36 @@
   "name": "xylium-ingestion",
   "version": "1.0.0",
   "private": true,
-  "description": "Xylium BF collector: receives browser events (/collect) and trusted server-to-server identity links (/identify)",
+  "description": "Xylium BF collector: receives browser events (/collect), trusted server-to-server identity links (/identify), and custom-pattern uploads (/cp)",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch --runInBand"
   },
   "dependencies": {
+    "acorn": "^8.18.0",
+    "acorn-walk": "^8.3.5",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.0",
     "mongoose": "^8.5.0",
+    "multer": "^2.4.0",
     "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFiles": [
+      "<rootDir>/tests/setupEnv.js"
+    ],
+    "testMatch": [
+      "<rootDir>/tests/**/*.test.js"
+    ]
   }
 }

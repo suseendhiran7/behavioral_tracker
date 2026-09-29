@@ -1,66 +1,156 @@
-# Xylium Ingestion Gateway (Express.js)
+# Xylium Behavioral Fingerprinting — SDK + Backend
 
-Plain Express.js port of the NestJS ingestion gateway. Same behavior: receives
-behavioral batches from the `xylium-bf.js` SDK, stores them in MongoDB keyed
-on **sessionId**, stitches the real **userId** in late, and forwards each
-assembled session to your FastAPI feature/scoring service via a BullMQ worker.
+Xylium is a two-part system for collecting behavioral and device signals
+from a web page and turning them into a fraud/bot-risk signal for a login or
+transaction flow:
 
-## Status: booted and verified end-to-end
-
-Run against a live Mongo-compatible server + Redis. Verified: `/health` 200;
-pre-login `/collect` 202; browser identify 202; server-side `/identify` 200;
-unknown tenant 403; missing API key 401; invalid payload 400. Confirmed in the
-DB that a pre-login batch gets `userId` backfilled once identify lands, that
-server-side identify overrides a browser-reported one, and that the worker
-assembles the whole session and POSTs it to the feature service.
-
-**Note on the test run:** in this sandbox, firing `/collect` → `/identify`
-back-to-back with no spacing occasionally raced against the forward worker's
-own write on the same document, using the lightweight SQLite-backed Mongo
-stand-in this was tested against — a limitation of that test backend under
-rapid concurrent partial updates, not of the application logic. With realistic
-request spacing (or against real MongoDB, which handles concurrent partial
-`$set` updates correctly) the override lands as expected every time. If you
-see this in production against real MongoDB, it would be worth a second look,
-but it's not expected there.
-
-## Why sessionId (not userId) is the key
-
-On a login page the valuable behavior — typing rhythm, mouse movement, paste
-events — happens **before** login succeeds, i.e. before `userId` is known.
-Storage is keyed on `sessionId`; `userId` starts `null` and gets backfilled
-onto every prior batch for that session once identify happens.
-
-## Project layout
+1. **`sdk/`** — a modular JavaScript SDK that runs in the browser, capturing
+   mouse, keyboard, touch, scroll, form, navigation, device-fingerprint,
+   idle, geolocation, and automation/bot signals, and batching them to a
+   backend.
+2. **`node_app/`** — an Express + MongoDB backend that receives those
+   batches, stores them keyed on session, stitches in the real `userId` once
+   login succeeds, and lets an admin submit new custom pattern modules for
+   the SDK (with an automatic guard against ones that capture actual user
+   data instead of just behavior).
 
 ```
-src/
-  config/index.js          env config, typed defaults
-  models/EventBatch.js     one doc per flushed SDK batch
-  models/Session.js        one summary doc per session (_id = sessionId)
-  middleware/tenantGuard.js    allowlist check for /collect
-  middleware/apiKeyGuard.js    timing-safe key check for /identify
-  validation.js             zod schemas matching the SDK wire format
-  collectService.js         ingest + userId stitching/backfill logic
-  forward/queue.js          BullMQ queue + enqueue helper
-  forward/worker.js         BullMQ worker: assemble session, POST to FastAPI
-  routes/collect.js, identify.js, health.js
-  app.js                    Express app: cors, body limit, rate limit, routes
-  server.js                 Mongo connect, worker start, graceful shutdown
+project-root/
+├── sdk/                     the browser SDK (see "The SDK" below)
+│   ├── xylium-core.js       landing file: session id, API pointer, transport
+│   ├── xylium-mouse.js
+│   ├── xylium-keyboard.js
+│   ├── xylium-touch.js
+│   ├── xylium-scroll.js
+│   ├── xylium-form.js
+│   ├── xylium-clipboard.js
+│   ├── xylium-navigation.js
+│   ├── xylium-device.js
+│   ├── xylium-idle.js
+│   ├── xylium-geo.js
+│   ├── xylium-bot.js
+│   ├── xylium-identity.js
+│   └── xylium-custom.js     (only present once a custom pattern is accepted)
+│
+└── node_app/                the backend (see "The backend" below)
+    ├── package.json
+    ├── .env
+    ├── src/
+    │   ├── server.js         entrypoint: connects Mongo, starts Express
+    │   ├── app.js             Express app: CORS, body parsing, rate limit, routes
+    │   ├── config/index.js    env var loading
+    │   ├── validation.js      zod schemas for /collect and /identify
+    │   ├── collectService.js  core stitching logic
+    │   ├── middleware/
+    │   │   ├── tenantGuard.js   allowlist check for /collect
+    │   │   └── apiKeyGuard.js   x-tenant-id + x-api-key check for /identify
+    │   ├── models/
+    │   │   ├── EventBatch.js    one doc per flushed SDK batch
+    │   │   └── Session.js       one summary doc per session
+    │   ├── routes/
+    │   │   ├── collect.js, identify.js, health.js
+    │   └── forward/            (stubbed — Redis/BullMQ forwarding disabled)
+    ├── tools/
+    │   ├── validate-custom-pattern.js   static analyzer: rejects patterns
+    │   │                                 that capture real user data
+    │   ├── customPatternRoute.js        HTTP endpoint wrapping the validator
+    │   └── samples/                     example accepted/rejected submissions
+    └── tests/                 Jest + Supertest unit/integration tests
 ```
 
-## Endpoints
+---
 
-| Method | Path        | Auth                        | Who calls it           |
-|--------|-------------|------------------------------|-------------------------|
-| POST   | `/collect`  | tenant allowlist + CORS      | the SDK, from browsers  |
-| POST   | `/identify` | `x-tenant-id` + `x-api-key`  | customer's login backend|
-| GET    | `/health`   | none                          | load balancer / uptime  |
+## The SDK (`sdk/`)
 
-`/collect` returns `202 Accepted` — storage and forwarding are async.
+### How it's structured
 
-### `/identify` (trusted) example
+`xylium-core.js` is the **landing file** — it holds the session id, reads
+its own `data-*` attributes for config (including the backend API pointer),
+owns the event queue and transport (batching + `navigator.sendBeacon` on
+unload), and exposes the public `window.XyliumBF` API.
 
+Every other file is a **pattern module** — a single behavioral signal
+category. Each one self-registers with the core through a small queue that
+works regardless of script load order:
+
+```js
+(window.XyliumBFModules = window.XyliumBFModules || []).push(function (core) {
+  // core.pushEvent(...), core.config, core.state, core.onConsent(order, fn), ...
+});
+```
+
+Dropping a pattern's `<script>` tag removes that entire signal category —
+no other code changes needed.
+
+### What it captures
+
+| Module | Signal |
+|---|---|
+| `xylium-mouse.js` | Mouse movement, clicks, trajectory, overshoot, hover, double-click, entropy |
+| `xylium-keyboard.js` | Key timing, n-grams, corrections, shortcuts, shift/caps, typing summary |
+| `xylium-touch.js` | Touch pressure, tap, swipe, multi-touch |
+| `xylium-scroll.js` | Scroll position/velocity/direction |
+| `xylium-form.js` | Field focus order, time-in-field, clear/retype, autofill, password toggle, submit/abandon/return |
+| `xylium-clipboard.js` | Copy/paste occurrence (never clipboard *content*) |
+| `xylium-navigation.js` | Page entry method, referrer, time context, back/forward, resize, tab visibility, window blur/focus |
+| `xylium-device.js` | Device/browser fingerprint, plugins, battery, connection, canvas/WebGL/font/audio fingerprints, network timing |
+| `xylium-idle.js` | Idle start/end |
+| `xylium-geo.js` | Coarse geolocation + timezone-vs-location consistency (opt-in via `data-capture-geo`) |
+| `xylium-bot.js` | Automation/headless-browser detection, media-query anomalies, event-integrity (isTrusted / timestamp precision) |
+| `xylium-identity.js` | Persistent cross-session device id, local failed-login-attempt window |
+
+Every module follows one rule: capture **behavior** (timing, coordinates,
+counts), never **content** (what was typed, pasted, or stored). See
+"Custom patterns" below for how that rule is enforced for new modules.
+
+### Public API (`window.XyliumBF`)
+
+| Method | Purpose |
+|---|---|
+| `identify(userId)` | Associate the session with a logged-in user (browser-reported, lower trust than server-side `/identify`) |
+| `track(name, props)` | Send an arbitrary named custom event |
+| `grantConsent()` | Start capture (required unless `requireConsent` is disabled) |
+| `revokeConsent()` | Stop capture and erase persisted identifiers (device id, failed-attempt log, form-abandon marker) |
+| `reportLoginResult(success, reason)` | Record a login attempt outcome (from `xylium-identity.js`) |
+| `markFormSubmitted()` | Manually mark a form submitted, for SPA forms with no native submit event |
+| `requestGeo()` | Manually (re-)trigger a geolocation capture |
+| `getSessionId()` | Read the current session id (needed for the server-side `/identify` call — see the integration guide) |
+| `_debugFlushNow()` | Force an immediate flush to the backend, for debugging |
+| `use(factory)` | Register a pattern module programmatically |
+
+Full integration steps are in **`INTEGRATION_GUIDE.md`**.
+
+### Custom patterns
+
+`tools/validate-custom-pattern.js` statically analyzes a submitted pattern
+module and blocks it if it reads actual field values, cookies, rendered page
+content, clipboard content, non-namespaced storage, PII-shaped regexes, or
+bypasses the SDK's own transport. Only patterns that pass become
+`sdk/xylium-custom.js`. See `node_app/tools/README.md` for the CLI and HTTP
+(`/cp`) usage.
+
+---
+
+## The backend (`node_app/`)
+
+Express + MongoDB service that receives SDK batches, stores them keyed on
+`sessionId` (not `userId` — the valuable behavioral data on a login page
+happens *before* the user is known), and backfills `userId` onto everything
+once identification happens.
+
+### Endpoints
+
+| Method | Path | Auth | Who calls it |
+|---|---|---|---|
+| `GET` | `/health` | none | uptime checks |
+| `POST` | `/collect` | tenant allowlist (`ALLOWED_TENANTS`) | the SDK, from browsers |
+| `POST` | `/identify` | `x-tenant-id` + `x-api-key` | your login backend, server-to-server |
+| `POST` | `/cp` | **none currently** — see security note below | whoever is submitting a custom pattern |
+
+`/collect` returns `202 Accepted` (storage is synchronous to Mongo; forwarding
+to a downstream scoring service is currently stubbed/disabled).
+
+**`/identify` example:**
 ```bash
 curl -X POST http://localhost:8080/identify \
   -H 'content-type: application/json' \
@@ -69,35 +159,64 @@ curl -X POST http://localhost:8080/identify \
   -d '{"sessionId":"<the session id>","userId":"user_42"}'
 ```
 
-## Run it
-
-```bash
-cp .env.example .env          # then edit values
-docker compose up -d          # local Mongo + Redis
-npm install
-npm run dev                   # or: npm start
+**`/cp` example** (multipart upload — see `node_app/tools/README.md` for the
+full Postman walkthrough):
+```
+POST http://localhost:8080/cp
+Body → form-data:
+  file         [File]   the .js pattern file
+  filename     [Text]   e.g. "xylium-custom.js"
+  description  [Text]   what this pattern captures and why
 ```
 
-Point the SDK's `data-api-endpoint` at this service (e.g. `http://localhost:8080`);
-the SDK appends `/collect` itself.
+### Setup
 
-## Hardening included
+```bash
+cd node_app
+npm install
+cp .env.example .env    # then edit values — see below
+npm run dev              # or: npm start
+```
 
-- Tenant allowlist on `/collect` (`ALLOWED_TENANTS`).
-- CORS origin allowlist (`CORS_ORIGINS`).
-- Payload size cap (`MAX_PAYLOAD_BYTES`, enforced by `express.json({ limit })`)
-  and per-batch event cap (`MAX_BATCH_EVENTS`).
-- Rate limiting via `express-rate-limit` (`RATE_LIMIT_MAX` per `RATE_LIMIT_WINDOW_MS`, per IP).
-- Timing-safe API key check on `/identify`.
-- zod validation on both `/collect` and `/identify` bodies (400 on bad shape).
-- Forward retries with exponential backoff (BullMQ, 5 attempts).
+### Environment variables (`.env`)
 
-## Things intentionally left as next steps
+| Variable | Purpose |
+|---|---|
+| `PORT` | HTTP port (default `8080`) |
+| `MONGO_URI` | MongoDB connection string |
+| `ALLOWED_TENANTS` | Comma-separated tenant allowlist for `/collect`. Empty = allow all (dev only) |
+| `CORS_ORIGINS` | Comma-separated allowed origins, or `*` |
+| `TENANT_API_KEYS` | JSON map of `tenantId → apiKey`, used by `/identify` |
+| `MAX_BATCH_EVENTS` | Max events accepted per `/collect` batch |
+| `MAX_PAYLOAD_BYTES` | Max request body size |
+| `RAW_TTL_DAYS` | Auto-expire raw event batches after N days (`0` = keep forever) |
+| `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX` | Rate limiting, per IP |
+| `XYLIUM_SDK_DIR` | Where `/cp` writes an accepted `xylium-custom.js` — point this at your real `sdk/` folder |
 
-- Trust model for browser-reported userId — prefer the server-to-server
-  `/identify`; treat the SDK's own `identify()` userId as a hint
-  (`identifiedBy` records which source won).
-- A sweep job for sessions that never identify (abandoned/failed logins are
-  themselves a fraud signal).
-- Auth between this gateway and the FastAPI service (shared secret / mTLS).
-- Dedupe if the SDK ever re-sends a batch (add a client-side batch id).
+### Data model
+
+- **`EventBatch`** — one document per flushed SDK batch (not one growing
+  array per session, to stay well under Mongo's 16MB document limit).
+- **`Session`** — one summary document per session (`_id = sessionId`):
+  running counts, current `userId`, and `identifiedBy` (`'browser'` or
+  `'server'` — a server-side `/identify` call always wins over and is never
+  overwritten by a later browser-reported one).
+
+### Testing
+
+```bash
+npm test
+```
+Jest + Supertest, Mongoose mocked (no real MongoDB needed to run the suite).
+See `node_app/tests/` for the full breakdown by file.
+
+### Security notes
+
+- **`/cp` currently has no auth.** Anyone who can reach it can add a file to
+  the SDK folder if their code passes validation. Fine for local
+  development; re-enable the commented-out `apiKeyGuard` call in
+  `tools/customPatternRoute.js` before this is reachable from anywhere else.
+- `/identify`'s API key comparison is timing-safe (`crypto.timingSafeEqual`).
+- The custom-pattern validator is a static, rule-based gate against
+  accidental/naive over-capture — not a security boundary against a
+  determined, obfuscating bad actor. Review anything it accepts.

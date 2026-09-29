@@ -5,6 +5,7 @@ const config = require('./config');
 const healthRouter = require('./routes/health');
 const collectRouter = require('./routes/collect');
 const identifyRouter = require('./routes/identify');
+const customPatternRouter = require('../tools/customPatternRoute');
 
 function createApp() {
   const app = express();
@@ -69,6 +70,7 @@ function createApp() {
   app.use('/health', healthRouter);
   app.use('/collect', collectRouter);
   app.use('/identify', identifyRouter);
+  app.use('/cp', customPatternRouter);
 
   // 404
   app.use((req, res) => res.status(404).json({ error: 'not found' }));
