@@ -31,7 +31,10 @@
  *                         webgl / font / audio fingerprints + language /
  *                         privacy signals + network timing + RTT variance
  *   xylium-idle.js        idle start / end
- *   xylium-geo.js         geolocation + timezone-vs-geo consistency
+ *   xylium-geo.js         geolocation + timezone-vs-geo consistency +
+ *                         geo_lat / geo_lon / geo_distance_from_home_km
+ *   xylium-network-risk.js is_vpn / is_proxy / is_datacenter /
+ *                         geo_is_new_country (via backend IP intelligence)
  *   xylium-bot.js         automation / headless / CDP / media-query / integrity
  *   xylium-identity.js    persistent device id + failed-attempt window + login result
  *
@@ -69,6 +72,9 @@
     appId: attr('data-app-id', 'unknown'),
     apiEndpoint: attr('data-api-endpoint', null),
     captureGeo: attr('data-capture-geo', 'false') === 'true',
+    // Optional: backend IP-intelligence URL used by xylium-network-risk.js.
+    // Defaults to <apiEndpoint>/ip-intel when not set.
+    ipIntelEndpoint: attr('data-ip-intel-endpoint', null),
     requireConsent: true,
     samplingRate: 1.0,
     batchSize: 100,
@@ -447,6 +453,9 @@
     reportLoginResult: function () { console.warn('[XyliumBF v2] identity module not loaded'); },
     markFormSubmitted: function () { console.warn('[XyliumBF v2] form module not loaded'); },
     requestGeo: function () { console.warn('[XyliumBF v2] geo module not loaded'); },
+    setHomeLocation: function () { console.warn('[XyliumBF v2] geo module not loaded'); },
+    requestNetworkRisk: function () { console.warn('[XyliumBF v2] network-risk module not loaded'); },
+    getAutofillSummary: function () { console.warn('[XyliumBF v2] form module not loaded'); return null; },
 
     getSessionId: function () { return state.sessionId; },
     _debugFlushNow: function () { flush(false); },

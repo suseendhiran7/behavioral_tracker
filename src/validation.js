@@ -39,4 +39,10 @@ const IdentifySchema = z.object({
   userId: z.string().max(256),
 });
 
-module.exports = { CollectBatchSchema, IdentifySchema };
+const IpIntelQuerySchema = z.object({
+  tenantId: z.string().min(1).max(128),
+  appId: z.string().max(128).optional(),
+  sessionId: z.string().min(1).max(128),
+});
+
+module.exports = { CollectBatchSchema, IdentifySchema, IpIntelQuerySchema };

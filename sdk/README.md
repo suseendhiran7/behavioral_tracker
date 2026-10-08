@@ -14,12 +14,13 @@ original — only the file layout changed.
 | `xylium-keyboard.js` | Key timing, n-grams, corrections, shortcuts, shift/caps, typing summary. |
 | `xylium-touch.js` | Touch pressure and touch gestures. |
 | `xylium-scroll.js` | Scroll behaviour. |
-| `xylium-form.js` | Focus/blur, form interaction, first-field, clear-and-retype, password toggle, submit/abandon/return, and autofill detection. Exposes `markFormSubmitted()`. |
+| `xylium-form.js` | Focus/blur, form interaction, first-field, clear-and-retype, password toggle, submit/abandon/return, and autofill detection incl. the `autofill_summary` event (`username_autofilled`, `password_autofilled`, `username_fill_time_ms`, `password_fill_time_ms`). Exposes `markFormSubmitted()`, `getAutofillSummary()`. |
 | `xylium-clipboard.js` | Copy / paste. |
 | `xylium-navigation.js` | Visibility/resize, back-button, time context, page-entry method, referrer, window blur/focus. |
 | `xylium-device.js` | Device snapshot, plugins, battery, connection, composite/canvas/webgl/font/audio fingerprints, language & privacy signals, network timing + RTT sampler. |
 | `xylium-idle.js` | Idle start / end. |
-| `xylium-geo.js` | Geolocation + timezone/geo consistency. Exposes `requestGeo()`. |
+| `xylium-geo.js` | Geolocation + timezone/geo consistency + `geo_features` (`geo_lat`, `geo_lon`, `geo_distance_from_home_km`). Exposes `requestGeo()`, `setHomeLocation(lat, lon)`. |
+| `xylium-network-risk.js` | `network_risk` event: `is_vpn`, `is_proxy`, `is_datacenter`, `geo_is_new_country`. Needs a backend `GET /ip-intel` endpoint (contract in the file header). Exposes `requestNetworkRisk()`. |
 | `xylium-bot.js` | Automation/headless/CDP detection, media-query anomalies, event-integrity (isTrusted / timestamp precision). |
 | `xylium-identity.js` | Cross-session persistent device id and failed-attempt window. Exposes `reportLoginResult()`. |
 
@@ -79,3 +80,15 @@ pattern file isn't loaded, so dropping a pattern never throws.
 
 Delete a pattern file's `<script>` line to stop collecting that signal — nothing
 else needs to change. Add one back the same way.
+
+## Login risk features
+
+| Feature | Event | Source |
+|---|---|---|
+| `geo_lat`, `geo_lon` | `geo_features` | Browser geolocation (needs `data-capture-geo="true"` + user permission), 2 dp ≈ 1 km |
+| `geo_distance_from_home_km` | `geo_features` | Haversine to home set via `setHomeLocation()`, else first fix seen on the device (null on that first fix) |
+| `geo_is_new_country` | `network_risk` | Server verdict if returned by `/ip-intel`, else per-device country history (null on first visit) |
+| `is_vpn`, `is_proxy`, `is_datacenter` | `network_risk` | Backend IP-intelligence lookup — cannot be detected reliably in the browser |
+| `username_autofilled`, `password_autofilled`, `username_fill_time_ms`, `password_fill_time_ms` | `autofill_summary` | CSS autofill hook + value-injection heuristic; time = ms since navigation start, null if not autofilled. Sent on submit or pagehide |
+
+Optional core attribute: `data-ip-intel-endpoint` (defaults to `<data-api-endpoint>/ip-intel`).

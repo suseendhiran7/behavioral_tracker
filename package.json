@@ -2,7 +2,7 @@
   "name": "xylium-ingestion",
   "version": "1.0.0",
   "private": true,
-  "description": "Xylium BF collector: receives browser events (/collect), trusted server-to-server identity links (/identify), and custom-pattern uploads (/cp)",
+  "description": "Xylium BF collector: receives browser events (/collect), IP intelligence for the SDK (/ip-intel), trusted server-to-server identity links (/identify), and custom-pattern uploads (/cp)",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

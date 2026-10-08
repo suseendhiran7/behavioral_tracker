@@ -10,9 +10,12 @@
  *   field_cleared / field_retyped / field_bulk_insert
  *   password_visibility_toggle eye-icon usage
  *   autofill                   browser / password-manager autofill
+ *   autofill_summary           username_autofilled, password_autofilled,
+ *                              username_fill_time_ms, password_fill_time_ms
  *   form_submit / form_abandon / form_return
  *
  * Public API added: XyliumBF.markFormSubmitted()  (for SPA logins)
+ *                   XyliumBF.getAutofillSummary() (read current flags)
  */
 (window.XyliumBFModules = window.XyliumBFModules || []).push(function (core) {
   var pushEvent = core.pushEvent;
@@ -173,6 +176,8 @@
       fs.clearedAt = null;
     }
 
+    checkValueInjection(t, field, fs.lastLen, len, inputType);
+
     if (len - fs.lastLen >= BULK_INSERT_MIN_CHARS && inputType !== 'insertFromPaste' && inputType !== 'insertFromDrop') {
       pushEvent({ type: 'field_bulk_insert', field: field, fieldKind: classifyField(t), charsAdded: len - fs.lastLen, inputType: inputType, isTrusted: e.isTrusted });
     }
@@ -211,6 +216,61 @@
   }
 
   // ---------- 12. Autofill detection ----------
+  // Two detectors feed one record per login field:
+  //   a) CSS :-webkit-autofill animation hook — browser-native autofill
+  //      (Chrome, Edge, Safari, Firefox 86+). Fires even before the user
+  //      touches the page, often before consent is granted.
+  //   b) Value injection — a password manager / extension sets the value in
+  //      one go into an empty field with no keystroke, paste or IME
+  //      composition on that field just before it.
+  // Only booleans and timings are kept; field contents are never read.
+  //
+  // Fill time = ms since page navigation start (performance.now() origin),
+  // so near-zero values mean "filled as the page loaded".
+  var AUTOFILL_KEY_GRACE_MS = 1000;      // keystroke this recent ⇒ typed, not injected
+  var AUTOFILL_MIN_INJECT_CHARS = 3;     // ignore 1–2 char jumps (IME / autocorrect)
+  var autofillRecord = {
+    username: { filled: false, fillTimeMs: null, method: null },
+    password: { filled: false, fillTimeMs: null, method: null },
+  };
+  var autofillSummarySent = false;
+  var lastKeyOrImeAt = Object.create(null); // field → performance.now()
+
+  function noteKeyActivity(e) {
+    var field = fieldIdFor(e.target);
+    if (field) lastKeyOrImeAt[field] = performance.now();
+  }
+  document.addEventListener('keydown', noteKeyActivity, true);
+  document.addEventListener('compositionstart', noteKeyActivity, true);
+  document.addEventListener('compositionupdate', noteKeyActivity, true);
+
+  function recordAutofill(target, method) {
+    var kind = classifyField(target);
+    if (!kind) return;
+    var fillTimeMs = Math.round(performance.now());
+
+    // Login-field record for the summary. Captured locally even before
+    // consent so a load-time autofill isn't lost; it is only SENT after
+    // consent (pushCriticalEvent is consent-gated).
+    var rec = autofillRecord[kind];
+    if (rec && !rec.filled) {
+      rec.filled = true;
+      rec.fillTimeMs = fillTimeMs;
+      rec.method = method;
+    } else if (rec && method === 'browser_autofill' && rec.method === 'value_injection') {
+      // Chrome can fire the input event a tick before the :autofill
+      // animation; the CSS hook is the more specific label, keep its name.
+      rec.method = 'browser_autofill';
+    }
+
+    // Per-field `autofill` event (original wire format for the CSS path).
+    if (state.autofillSeen[kind] || !state.consentGiven) return;
+    state.autofillSeen[kind] = true;
+    var evt = { type: 'autofill', field: kind, fillTimeMs: Math.round(performance.now() - state.startTime) };
+    if (method !== 'browser_autofill') evt.method = method;
+    pushCriticalEvent(evt);
+  }
+
   function installAutofillWatcher() {
     var style = document.createElement('style');
     style.textContent =
@@ -221,11 +281,39 @@
       if (e.animationName !== 'xyliumBFAutofillStart') return;
       var target = e.target;
       if (!target || (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA')) return;
-      var field = classifyField(target);
-      if (!field || state.autofillSeen[field]) return;
-      state.autofillSeen[field] = true;
-      pushCriticalEvent({ type: 'autofill', field: field, fillTimeMs: Math.round(performance.now() - state.startTime) });
+      recordAutofill(target, 'browser_autofill');
     }, true);
+  }
+
+  // Called from the input listener with the field's previous length.
+  function checkValueInjection(target, field, prevLen, newLen, inputType) {
+    if (prevLen !== 0 || newLen < AUTOFILL_MIN_INJECT_CHARS) return;
+    if (inputType === 'insertFromPaste' || inputType === 'insertFromDrop') return;
+    var lastKey = lastKeyOrImeAt[field];
+    if (lastKey !== undefined && performance.now() - lastKey < AUTOFILL_KEY_GRACE_MS) return;
+    recordAutofill(target, 'value_injection');
+  }
+
+  function buildAutofillSummary() {
+    return {
+      username_autofilled: autofillRecord.username.filled,
+      password_autofilled: autofillRecord.password.filled,
+      username_fill_time_ms: autofillRecord.username.fillTimeMs,
+      password_fill_time_ms: autofillRecord.password.fillTimeMs,
+      username_autofill_method: autofillRecord.username.method,
+      password_autofill_method: autofillRecord.password.method,
+    };
+  }
+
+  // Sent once: at form submit, or just before the final beacon if the user
+  // leaves without submitting.
+  function emitAutofillSummary(trigger) {
+    if (autofillSummarySent || !state.consentGiven) return;
+    autofillSummarySent = true;
+    var evt = buildAutofillSummary();
+    evt.type = 'autofill_summary';
+    evt.trigger = trigger;
+    pushCriticalEvent(evt);
   }
 
   // ---------- 8g. Form submit, abandonment and return ----------
@@ -237,6 +325,7 @@
     if (state.formSubmitted || !state.consentGiven) return;
     state.formSubmitted = true;
     removeStore(ABANDON_KEY);
+    emitAutofillSummary('form_submit');
     pushCriticalEvent({
       type: 'form_submit',
       source: source || 'api',
@@ -263,7 +352,12 @@
     });
   }
 
-  core.addPreFlushHook(function (reason) { if (reason === 'pagehide') recordAbandonIfNeeded(); });
+  core.addPreFlushHook(function (reason) {
+    if (reason === 'pagehide') {
+      recordAbandonIfNeeded();
+      emitAutofillSummary('pagehide');
+    }
+  });
 
   function checkFormReturn() {
     var rec = readStore(ABANDON_KEY);
@@ -290,4 +384,7 @@
 
   // SPA logins that never fire a native submit call this.
   core.defineApi('markFormSubmitted', function () { markFormSubmitted('api'); });
+
+  // Read the current autofill flags without emitting anything.
+  core.defineApi('getAutofillSummary', buildAutofillSummary);
 });

@@ -12,7 +12,7 @@
         data-tenant-id="tenant_test001"
         data-app-id="app_test001"
         data-api-endpoint="http://localhost:8080"
-        data-capture-geo="false"></script>
+        data-capture-geo="true"></script>
 
 <!-- 2) Pattern files, in ANY order. Each self-registers with the core, so you
         can add or remove a pattern just by adding/removing its <script> line. -->
@@ -26,6 +26,7 @@
 <script src="xylium-device.js"></script>
 <script src="xylium-idle.js"></script>
 <script src="xylium-geo.js"></script>
+<script src="xylium-network-risk.js"></script>
 <script src="xylium-bot.js"></script>
 <script src="xylium-identity.js"></script>
 
@@ -2465,11 +2466,16 @@ function handleLogin() {
   if (!pw) { pwErr.classList.remove('hidden'); valid = false; }
   if (!valid) return;
 
+  // SPA login (no native <form> submit): tell the SDK the form was submitted.
+  // This also sends the autofill_summary event.
+  if (window.XyliumBF) window.XyliumBF.markFormSubmitted();
+
   var user = USERS.find(function(u) {
     return (u.username === un || u.id === un) && u.password === pw;
   });
 
   if (!user) {
+    if (window.XyliumBF) window.XyliumBF.reportLoginResult(false, 'bad_credentials');
     pwErr.textContent = 'Incorrect Customer ID or password. Please try again.';
     pwErr.classList.remove('hidden');
     return;
@@ -2478,6 +2484,9 @@ function handleLogin() {
   // Identify user in Xylium SDK after successful login
   if (window.XyliumBF) {
     window.XyliumBF.identify(user.id);
+    window.XyliumBF.reportLoginResult(true);
+    // In production, pass the user's registered home from your backend:
+    // window.XyliumBF.setHomeLocation(homeLat, homeLon);
   }
 
   showPage('dashboard');

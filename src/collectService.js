@@ -1,6 +1,7 @@
 const config = require('./config');
 const EventBatch = require('./models/EventBatch');
 const Session = require('./models/Session');
+const ipIntelService = require('./ipIntelService');
 
 class BadRequestError extends Error {
   constructor(message) {
@@ -77,6 +78,13 @@ async function attachUserId(sessionId, userId, source) {
   console.log(
     `[collect] stitched userId=${userId} (${source}) onto session ${sessionId}; backfilled ${res.modifiedCount} batch(es)`
   );
+  // Now that the user is known, score geo_is_new_country for this session.
+  // Best-effort: a geo failure must never fail an identify.
+  try {
+    await ipIntelService.onUserIdentified(sessionId, userId);
+  } catch (err) {
+    console.warn('[collect] new-country evaluation failed', err.message);
+  }
 }
 
 module.exports = { ingest, attachUserId, BadRequestError };

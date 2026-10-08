@@ -6,8 +6,9 @@ function tenantGuard(req, res, next) {
 
   // req.body can be undefined if Content-Type was wrong (e.g. sendBeacon)
   // Parse it safely
+  // POST /collect sends it in the body; GET /ip-intel in the query string.
   const body = req.body || {};
-  const tenantId = body.tenantId;
+  const tenantId = body.tenantId || (req.query && req.query.tenantId);
 
   if (!tenantId) {
     return res.status(400).json({ error: 'tenantId missing' });
