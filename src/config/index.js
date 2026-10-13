@@ -43,6 +43,9 @@ module.exports = {
   tenantApiKeys: jsonMap(process.env.TENANT_API_KEYS),
   maxBatchEvents: parseInt(process.env.MAX_BATCH_EVENTS || '500', 10),
   maxPayloadBytes: parseInt(process.env.MAX_PAYLOAD_BYTES || '262144', 10),
+  // Regex (case-insensitive) matched against each event's `page` (URL path).
+  // Logged-in events on a matching page go to payment_events.
+  paymentPagePattern: new RegExp(process.env.PAYMENT_PAGE_PATTERN || '(payment|checkout|pay|billing)', 'i'),
   rawTtlDays: parseInt(process.env.RAW_TTL_DAYS || '0', 10),
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
   rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '3000', 10),

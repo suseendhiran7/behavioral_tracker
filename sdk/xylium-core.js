@@ -228,6 +228,8 @@
   var state = {
     sessionId: getOrCreateSessionId(),
     userId: null,
+    // 'payment' on payment pages (set via data-page-type or setPageType()).
+    pageType: attr('data-page-type', null),
     consentGiven: !config.requireConsent,
     buffer: [],
     startTime: performance.now(),
@@ -305,6 +307,8 @@
     evt.t = Math.round(performance.now() - state.startTime);
     evt.sessionId = state.sessionId;
     evt.userId = state.userId;
+    evt.page = location.pathname;
+    evt.pageType = state.pageType;
     state.buffer.push(evt);
     state.lastActivityTime = performance.now();
     if (state.isIdle) runActivityResume();
@@ -316,6 +320,8 @@
     evt.t = Math.round(performance.now() - state.startTime);
     evt.sessionId = state.sessionId;
     evt.userId = state.userId;
+    evt.page = location.pathname;
+    evt.pageType = state.pageType;
     state.buffer.push(evt);
     state.lastActivityTime = performance.now();
     if (state.buffer.length >= config.batchSize) flush();
@@ -435,6 +441,17 @@
       pushEvent({ type: 'identify', userId: userId });
       console.log('[XyliumBF v2] identified user:', userId);
     },
+    // Call when the user logs out. Ends the logged-in session on the backend
+    // (events after this go to login_events again).
+    logout: function () {
+      pushCriticalEvent({ type: 'logout' });
+      state.userId = null;
+      flush(false);
+      console.log('[XyliumBF v2] logged out');
+    },
+    // Mark the current page, e.g. setPageType('payment') on a checkout page
+    // in an SPA. Pass null to clear.
+    setPageType: function (type) { state.pageType = type || null; },
     track: function (name, props) { pushEvent({ type: 'custom', name: name, props: props || {} }); },
     grantConsent: function () {
       state.consentGiven = true;

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const config = require('./config');
 const createApp = require('./app');
+const { COLLECTIONS } = require('./models/EventStores');
 const { startForwardWorker } = require('./forward/worker');
 
 async function main() {
@@ -8,10 +9,12 @@ async function main() {
   console.log(`[XyliumIngestion] connected to Mongo`);
 
   if (config.rawTtlDays > 0) {
-    await mongoose.connection
-      .collection('event_batches')
-      .createIndex({ receivedAt: 1 }, { expireAfterSeconds: config.rawTtlDays * 86400 })
-      .catch((e) => console.warn('[server] TTL index setup failed', e.message));
+    for (const name of COLLECTIONS) {
+      await mongoose.connection
+        .collection(name)
+        .createIndex({ receivedAt: 1 }, { expireAfterSeconds: config.rawTtlDays * 86400 })
+        .catch((e) => console.warn(`[server] TTL index setup failed for ${name}`, e.message));
+    }
   }
 
   const worker = startForwardWorker();

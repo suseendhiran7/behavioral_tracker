@@ -24,6 +24,8 @@ const RawEventSchema = z
     name: z.string().max(64).optional(),
     props: z.record(z.unknown()).optional(),
     state: z.string().max(20).optional(),
+    page: z.string().max(512).optional(),
+    pageType: z.string().max(32).nullable().optional(),
   })
   .passthrough();
 
