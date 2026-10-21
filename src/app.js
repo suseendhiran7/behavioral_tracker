@@ -6,9 +6,15 @@ const healthRouter = require('./routes/health');
 const collectRouter = require('./routes/collect');
 const identifyRouter = require('./routes/identify');
 const analyticsRouter = require('./routes/analytics');
+const ipIntelRouter = require('./routes/ipIntel');
+const customPatternRouter = require('../tools/customPatternRoute');
 
 function createApp() {
   const app = express();
+
+  // Decides when X-Forwarded-For is believed (see TRUST_PROXY). Must be set
+  // before anything reads req.ip — the rate limiters and /ip-intel do.
+  app.set('trust proxy', config.trustProxy);
 
   // CORS — must be first, before everything
   const origins = config.corsOrigins;
@@ -78,6 +84,8 @@ function createApp() {
   app.use('/analytics', analyticsRouter);
   app.use('/api/admin/database', adminDatabaseRouter);
   app.use('/admin/database', adminDatabaseRouter);
+  app.use('/ip-intel', ipIntelRouter);
+  app.use('/cp', customPatternRouter);
 
   // Database-agnostic event routes
   app.post('/api/events/batch', optionalAuth, (req, res, next) => eventController.ingestBatch(req, res, next));

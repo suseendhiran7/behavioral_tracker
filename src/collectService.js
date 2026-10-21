@@ -67,6 +67,86 @@ function splitEvents(events, startPhase) {
   return { buckets, endPhase: phase, loginUserId, loggedOut };
 }
 
+// ---------- SDK event -> canonical event (used by the DB adapters) ----------
+
+const CATEGORY_BY_TYPE = {
+  mousemove: 'pointer', click: 'pointer', rightclick: 'pointer', double_click: 'pointer',
+  single_click_confirmed: 'pointer', mousedown: 'pointer', mouseup: 'pointer',
+  keydown: 'keyboard', keyup: 'keyboard', keytiming: 'keyboard',
+  shift_pattern: 'keyboard', keyboard_shortcut: 'keyboard',
+  copy: 'form', paste: 'form', focus: 'form', blur: 'form',
+  field_cleared: 'form', field_retyped: 'form', field_bulk_insert: 'form',
+  scroll: 'scroll',
+  multi_touch: 'touch',
+  visibilitychange: 'lifecycle', visibility_away: 'lifecycle', window_focus: 'lifecycle',
+  resize: 'lifecycle', idle_start: 'lifecycle', idle_end: 'lifecycle',
+  identify: 'identity', logout: 'identity',
+  automation_signal: 'device', composite_fingerprint: 'device', canvas_fingerprint: 'device',
+  webgl_fingerprint: 'device', font_fingerprint: 'device', audio_fingerprint: 'device',
+};
+
+function categoryFor(type) {
+  if (CATEGORY_BY_TYPE[type]) return CATEGORY_BY_TYPE[type];
+  if (/^touch|swipe/.test(type)) return 'touch';
+  if (/^field_|^form_/.test(type)) return 'form';
+  if (/^key/.test(type)) return 'keyboard';
+  if (/^(mouse|pointer)/.test(type)) return 'pointer';
+  return 'custom';
+}
+
+const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+const str = (v) => (typeof v === 'string' ? v : null);
+
+// Fields of the SDK envelope that are mapped explicitly below; everything
+// else the SDK sent is kept in `properties` so nothing is lost.
+const ENVELOPE_KEYS = new Set([
+  'type', 'name', 't', 'sessionId', 'userId', 'page', 'pageType', 'props',
+  'x', 'y', 'field', 'state', 'holdTimeMs', 'flightTimeMs', 'idleDurationMs',
+]);
+
+function toCanonicalEvent(evt, ctx) {
+  const type = evt.type || 'unknown_event';
+  const isCustom = type === 'custom' && typeof evt.name === 'string' && evt.name;
+  const category = categoryFor(type);
+
+  const extras = {};
+  for (const [k, v] of Object.entries(evt)) {
+    if (!ENVELOPE_KEYS.has(k) && v !== undefined) extras[k] = v;
+  }
+
+  return {
+    sessionId: ctx.sessionId,
+    tenantId: ctx.tenantId,
+    clientId: ctx.clientId,
+    userId: ctx.userId,
+    eventName: isCustom ? evt.name : type,
+    eventType: type,
+    eventCategory: category,
+    sequenceNumber: typeof evt.sequenceNumber === 'number' ? evt.sequenceNumber : ctx.idx,
+    page: str(evt.page),
+    sanitizedRoute: str(evt.page),
+
+    // `y` means scroll position on scroll events and pointer position otherwise
+    pointerX: category === 'pointer' ? num(evt.x) : null,
+    pointerY: category === 'pointer' ? num(evt.y) : null,
+    scrollY: category === 'scroll' ? num(evt.y) : null,
+
+    fieldId: str(evt.field),
+    holdTimeMs: num(evt.holdTimeMs),
+    flightTimeMs: num(evt.flightTimeMs),
+    idleDurationMs: num(evt.idleDurationMs),
+    visibilityState: str(evt.state),
+
+    device: { fingerprint: ctx.deviceFingerprint },
+    properties: {
+      ...extras,
+      ...(evt.props && typeof evt.props === 'object' ? evt.props : {}),
+      sdkRelativeMs: num(evt.t), // ms since page start, NOT a wall-clock time
+      pageType: evt.pageType ?? null,
+    },
+  };
+}
+
 function firstUserId(events, fallback) {
   const e = events.find((x) => x.userId);
   return e ? e.userId : fallback || null;
@@ -106,15 +186,20 @@ async function ingest(dto, clientIp) {
   const activeAdapter = databaseRegistry.getActiveAdapter();
 
   if (activeType === 'postgresql' && activeAdapter) {
-    const rawEvents = dto.events.map((e, idx) => ({
-      ...e,
-      sessionId,
-      tenantId: dto.tenantId,
-      clientId: dto.appId,
-      userId: e.userId || browserUserId || null,
-      sequenceNumber: typeof e.sequenceNumber === 'number' ? e.sequenceNumber : idx,
-      device: { fingerprint: dto.deviceFingerprint },
-    }));
+    // The SDK sends its own compact shape ({ type, t, x, y, field, props, ... }),
+    // but the adapters run normalizeEvent(), which validates the canonical
+    // schema ({ eventName, eventType, eventCategory, pointerX, ... }).
+    // Translate first, otherwise every batch fails with "eventName: Required".
+    const rawEvents = dto.events.map((e, idx) =>
+      toCanonicalEvent(e, {
+        idx,
+        sessionId,
+        tenantId: dto.tenantId,
+        clientId: dto.appId,
+        userId: e.userId || browserUserId || null,
+        deviceFingerprint: dto.deviceFingerprint,
+      })
+    );
     await activeAdapter.saveEvents(rawEvents);
   }
 
@@ -213,7 +298,9 @@ async function attachUserId(sessionId, userId, source, { setPhase = true } = {})
   console.log(
     `[collect] stitched userId=${userId} (${source}) onto session ${sessionId}; backfilled ${res.modifiedCount} login batch(es)`
   );
-  await EventBatch.updateMany({ sessionId }, { $set: { userId } }).catch(() => {});
+  if (require('mongoose').connection.readyState === 1) {
+    await EventBatch.updateMany({ sessionId }, { $set: { userId } }).catch(() => {});
+  }
 
   // Now that the user is known, score geo_is_new_country for this session.
   // Best-effort: a geo failure must never fail an identify.
@@ -224,4 +311,4 @@ async function attachUserId(sessionId, userId, source, { setPhase = true } = {})
   }
 }
 
-module.exports = { ingest, attachUserId, splitEvents, BadRequestError };
+module.exports = { ingest, attachUserId, splitEvents, toCanonicalEvent, BadRequestError };

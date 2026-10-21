@@ -12,10 +12,12 @@ async function main() {
     console.log(`[XyliumIngestion] connected to Mongo`);
 
     if (config.rawTtlDays > 0) {
-      await mongoose.connection
-        .collection('event_batches')
-        .createIndex({ receivedAt: 1 }, { expireAfterSeconds: config.rawTtlDays * 86400 })
-        .catch((e) => console.warn('[server] TTL index setup failed', e.message));
+      for (const name of COLLECTIONS) {
+        await mongoose.connection
+          .collection(name)
+          .createIndex({ receivedAt: 1 }, { expireAfterSeconds: config.rawTtlDays * 86400 })
+          .catch((e) => console.warn(`[server] TTL index setup failed for ${name}`, e.message));
+      }
     }
   } catch (err) {
     console.warn(`[server] MongoDB startup warning: ${err.message}`);
@@ -23,7 +25,8 @@ async function main() {
 
   // Initialize Dual Database Registry with default active database in code (mongodb)
   try {
-    await databaseRegistry.initialize('mongodb');
+    let db = process.env.ACTIVE_DATABASE || 'mongodb';
+    await databaseRegistry.initialize(db);
     const activeAdapter = databaseRegistry.getActiveAdapter();
     const health = await activeAdapter.healthCheck();
     if (health.status !== 'healthy') {

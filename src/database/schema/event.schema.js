@@ -140,7 +140,9 @@ function normalizeEvent(raw, context = {}) {
   const batteryLevel = raw.batteryLevel ?? device.batteryLevel ?? null;
   const isCharging = raw.isCharging ?? device.isCharging ?? null;
 
-  const eventType = raw.eventType || raw.eventName;
+  // Accept the SDK's raw `type`/`name` as a fallback so a caller that forgets
+  // to map SDK events still produces a valid record instead of a 400.
+  const eventType = raw.eventType || raw.eventName || raw.type || null;
 
   const input = {
     ...raw,
@@ -149,7 +151,7 @@ function normalizeEvent(raw, context = {}) {
     userId: context.userId !== undefined ? context.userId : (raw.userId || null),
     clientId: raw.clientId || context.clientId || null,
     eventType,
-    eventName: raw.eventName || eventType,
+    eventName: raw.eventName || (raw.type === 'custom' && raw.name) || eventType || 'unknown_event',
     eventCategory: raw.eventCategory || 'custom',
     page: raw.page || raw.sanitizedRoute || '/',
     sanitizedRoute: raw.sanitizedRoute || raw.page || '/',
