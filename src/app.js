@@ -5,6 +5,7 @@ const config = require('./config');
 const healthRouter = require('./routes/health');
 const collectRouter = require('./routes/collect');
 const identifyRouter = require('./routes/identify');
+const analyticsRouter = require('./routes/analytics');
 
 function createApp() {
   const app = express();
@@ -66,9 +67,27 @@ function createApp() {
     })
   );
 
+  const adminDatabaseRouter = require('./routes/admin-database.routes');
+  const eventController = require('./controllers/event.controller');
+  const { optionalAuth, requireAuth } = require('./middleware/authMiddleware');
+
   app.use('/health', healthRouter);
   app.use('/collect', collectRouter);
   app.use('/identify', identifyRouter);
+  app.use('/api/analytics', analyticsRouter);
+  app.use('/analytics', analyticsRouter);
+  app.use('/api/admin/database', adminDatabaseRouter);
+  app.use('/admin/database', adminDatabaseRouter);
+
+  // Database-agnostic event routes
+  app.post('/api/events/batch', optionalAuth, (req, res, next) => eventController.ingestBatch(req, res, next));
+  app.get('/api/events/:eventId', requireAuth, (req, res, next) => eventController.getEventById(req, res, next));
+  app.get('/api/events', requireAuth, (req, res, next) => eventController.getEvents(req, res, next));
+  app.get('/api/sessions/:sessionId/events', requireAuth, (req, res, next) => eventController.getSessionEvents(req, res, next));
+
+  // Serve behavioral tracker SDK and demo web interfaces
+  const path = require('path');
+  app.use(express.static(path.join(__dirname, '../behavioral_tracker_sdk')));
 
   // 404
   app.use((req, res) => res.status(404).json({ error: 'not found' }));

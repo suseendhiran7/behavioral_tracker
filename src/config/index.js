@@ -26,4 +26,5 @@ module.exports = {
   rawTtlDays: parseInt(process.env.RAW_TTL_DAYS || '0', 10),
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
   rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '3000', 10),
+  jwtSecret: process.env.JWT_SECRET || 'xylium-default-dev-secret-key-32chars!!',
 };

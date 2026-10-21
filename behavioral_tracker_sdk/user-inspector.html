@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Behavioral Biometrics & Risk Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --card-border: #1f2937;
+      --card-hover: #1e293b;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #8b5cf6;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius: 12px;
+      --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-main);
+      min-height: 100vh;
+      padding: 30px 20px 80px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 24px;
+      margin-bottom: 28px;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #fff;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 10px;
+    }
+
+    .nav-btn {
+      text-decoration: none;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .nav-btn:hover {
+      color: #fff;
+      border-color: #374151;
+      background: #1f2937;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+    }
+
+    /* Search & Inputs */
+    .search-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .input-group {
+      flex: 1;
+      position: relative;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: #0d131f;
+      border: 1px solid #263345;
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: #fff;
+      font-size: 14px;
+      font-family: var(--font-mono);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #1d4ed8, #1e40af);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #1f2937;
+      border: 1px solid #374151;
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: #374151;
+    }
+
+    .pill-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-right: 4px;
+    }
+
+    .user-pill {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      color: #93c5fd;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .user-pill:hover {
+      background: #1e293b;
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    /* Risk Score Banner */
+    .score-banner {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 24px;
+      background: linear-gradient(145deg, #131c2e, #0e1626);
+      border: 1px solid #1e293b;
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      align-items: center;
+    }
+
+    .score-circle-box {
+      text-align: center;
+      padding: 16px;
+      border-radius: 12px;
+      background: #090e1a;
+      border: 1px solid #1e293b;
+    }
+
+    .score-number {
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1;
+      margin: 8px 0;
+      font-family: var(--font-mono);
+    }
+
+    .score-caption {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .score-meter {
+      height: 8px;
+      border-radius: 4px;
+      background: #1f2937;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .score-meter-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .score-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .meta-box {
+      background: #0d1424;
+      border: 1px solid #1a2538;
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+
+    .meta-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .meta-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .badge-low { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-medium { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-high { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge-critical { background: rgba(220, 38, 38, 0.25); color: #fca5a5; border: 1px solid #dc2626; }
+
+    /* Signal Items */
+    .signal-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .signal-item.HIGH { border-left: 4px solid var(--danger); }
+    .signal-item.MEDIUM { border-left: 4px solid var(--warning); }
+    .signal-item.INFO { border-left: 4px solid var(--primary); }
+
+    .signal-content { flex: 1; }
+    .signal-title { font-size: 13px; font-weight: 600; color: #fff; }
+    .signal-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Features Grid */
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+    }
+
+    .feature-card {
+      background: #0f1624;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .feature-val {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      font-family: var(--font-mono);
+      margin: 4px 0 2px;
+    }
+
+    .feature-lbl {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Event Table */
+    .table-responsive {
+      overflow-x: auto;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      margin-top: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    th {
+      background: #0d131f;
+      color: var(--text-muted);
+      padding: 12px 14px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--card-border);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #162030;
+      font-family: var(--font-mono);
+      color: #cbd5e1;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      background: #1e293b;
+      color: #94a3b8;
+    }
+
+    /* Status indicators */
+    .loading-spinner {
+      display: none;
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      opacity: 0.7;
+    }
+
+    pre.json-dump {
+      background: #080d17;
+      border: 1px solid #1e293b;
+      padding: 14px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #a5b4fc;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Top Header -->
+    <header>
+      <div class="brand-title">
+        <div class="brand-icon">🛡️</div>
+        <div>
+          <h1>User Biometrics & Behaviour Score Explorer</h1>
+          <div class="subtitle">Query single user identity, aggregated behavioral summary, and explainable risk score</div>
+        </div>
+      </div>
+      <div class="nav-links">
+        <a href="admin-database.html" class="nav-btn" style="border-color:#3b82f6; color:#93c5fd;">🔄 Database Switcher</a>
+        <a href="test-page-v2.html" class="nav-btn">← Test Suite</a>
+        <a href="nexus-bank.html" class="nav-btn">Nexus Bank Demo →</a>
+      </div>
+    </header>
+
+    <!-- Search / Inspector Card -->
+    <div class="card">
+      <div class="card-title">🔍 Inspect Single User Identity</div>
+      <div class="search-row">
+        <div class="input-group">
+          <input type="text" id="targetUserId" placeholder="Enter User ID (e.g. user_alice_101)" value="user_alice_101" />
+        </div>
+        <button class="btn btn-primary" onclick="inspectUser()">
+          <span>Fetch User Data & Score</span>
+        </button>
+      </div>
+      <div class="pill-group">
+        <span class="pill-label">Quick Presets:</span>
+        <button class="user-pill" onclick="setAndQuery('user_alice_101')">user_alice_101</button>
+        <button class="user-pill" onclick="setAndQuery('user_bob_202')">user_bob_202</button>
+        <button class="user-pill" onclick="setAndQuery('usr_banking_987')">usr_banking_987</button>
+        <button class="user-pill" onclick="useActiveSessionUser()">Current Session User</button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingIndicator" class="loading-spinner">
+      <div style="font-size: 28px; margin-bottom: 8px; animation: spin 1s infinite linear;">⏳</div>
+      <div>Retrieving user journey, flattened events, and behavioral risk scores...</div>
+    </div>
+
+    <!-- Results Container -->
+    <div id="resultsView" style="display: none;">
+
+      <!-- 1. Behaviour Risk Assessment Card -->
+      <div class="score-banner">
+        <div class="score-circle-box">
+          <div class="score-caption">Behaviour Risk Score</div>
+          <div id="riskScoreVal" class="score-number">15</div>
+          <div id="riskLevelBadge" class="badge badge-low">LOW RISK</div>
+          <div class="score-meter">
+            <div id="riskMeterFill" class="score-meter-fill" style="width: 15%; background: var(--success);"></div>
+          </div>
+        </div>
+
+        <div class="score-meta-grid">
+          <div class="meta-box">
+            <div class="meta-label">Recommended Action</div>
+            <div id="riskActionVal" class="meta-value" style="color: #34d399;">ALLOW</div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-label">Evaluation Confidence</div>
+            <div id="riskConfidenceVal" class="meta-value">90%</div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-label">Evaluated Session</div>
+            <div id="riskSessionVal" class="meta-value" style="font-size: 13px; font-family: var(--font-mono);">-</div>
+          </div>
+          <div class="meta-box">
+            <div class="meta-label">Evaluation Time</div>
+            <div id="riskTimestampVal" class="meta-value" style="font-size: 13px; color: var(--text-muted);">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Contributing Biometric Signals -->
+      <div class="card">
+        <div class="card-title">🚨 Contributing Behavioral Signals & Bot Indicators</div>
+        <div id="signalsContainer">
+          <!-- Filled dynamically -->
+        </div>
+      </div>
+
+      <!-- 3. Biometric Features & Dynamics -->
+      <div class="card">
+        <div class="card-title">⚡ Extracted Session Biometric Features</div>
+        <div class="grid-4">
+          <div class="feature-card">
+            <div class="feature-lbl">Mean Keystroke Flight Time</div>
+            <div id="featFlightTime" class="feature-val">124 ms</div>
+            <div class="subtitle">Human normal: 80 - 250 ms</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-lbl">Typing Cadence</div>
+            <div id="featCadence" class="feature-val">4.2 kps</div>
+            <div class="subtitle">Automated threshold: &gt; 20 keys/sec</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-lbl">Mean Pointer Velocity</div>
+            <div id="featPointerSpeed" class="feature-val">0.38 px/ms</div>
+            <div class="subtitle">Trajectory sampling: 50ms intervals</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-lbl">Session Biometric Events</div>
+            <div id="featEventsCount" class="feature-val">48</div>
+            <div class="subtitle">Pointer, keystroke & navigation telemetry</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. User Summary & Engagement Profile -->
+      <div class="card">
+        <div class="card-title">📊 Aggregated User Journey & Profile</div>
+        <div class="grid-4" style="margin-bottom: 16px;">
+          <div class="feature-card">
+            <div class="feature-lbl">Total Events Ingested</div>
+            <div id="sumTotalEvents" class="feature-val">0</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-lbl">Total Recorded Sessions</div>
+            <div id="sumTotalSessions" class="feature-val">0</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-lbl">Active Engagement Duration</div>
+            <div id="sumActiveTime" class="feature-val">0s</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-lbl">Max Scroll Depth</div>
+            <div id="sumMaxScroll" class="feature-val">0%</div>
+          </div>
+        </div>
+
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;"><strong>Category Event Breakdown:</strong></div>
+        <div id="categoryPillList" class="pill-group" style="margin-bottom: 12px;"></div>
+
+        <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-muted); padding-top: 10px; border-top: 1px solid var(--card-border);">
+          <div>First Seen: <span id="sumFirstSeen" style="color: #fff;">-</span></div>
+          <div>Last Active: <span id="sumLastSeen" style="color: #fff;">-</span></div>
+        </div>
+      </div>
+
+      <!-- 5. Recent Flattened Events Stream -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="card-title" style="margin-bottom: 0;">📋 Recent Individual Flattened Events</div>
+          <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="toggleRawJson()">Toggle Raw JSON</button>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Seq #</th>
+                <th>Event Name</th>
+                <th>Category</th>
+                <th>Pointer (X, Y, Speed)</th>
+                <th>Keyboard (Cadence, Flight)</th>
+                <th>Form / Banking Details</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="eventsTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <div id="rawJsonBlock" style="display: none;">
+          <pre id="rawJsonContent" class="json-dump">// Raw response will display here</pre>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Empty Initial State -->
+    <div id="emptyState" class="empty-state">
+      <div class="empty-icon">🔎</div>
+      <h3>No User Queried Yet</h3>
+      <p style="margin-top: 6px; font-size: 14px;">Select a preset or enter a User ID above, then click "Fetch User Data & Score".</p>
+    </div>
+
+  </div>
+
+  <script>
+    var API_BASE = 'http://localhost:8080/api/analytics';
+    var TENANT_ID = 'tenant_test001';
+    var API_KEY = 'changeme-secret';
+
+    function setAndQuery(userId) {
+      document.getElementById('targetUserId').value = userId;
+      inspectUser();
+    }
+
+    function useActiveSessionUser() {
+      var saved = sessionStorage.getItem('xylium_active_user') || localStorage.getItem('xylium_active_user');
+      if (saved) {
+        document.getElementById('targetUserId').value = saved;
+        inspectUser();
+      } else {
+        alert('No active session user found in local/session storage. Enter a User ID manually.');
+      }
+    }
+
+    function toggleRawJson() {
+      var el = document.getElementById('rawJsonBlock');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function inspectUser() {
+      var userId = document.getElementById('targetUserId').value.trim();
+      if (!userId) {
+        alert('Please enter a User ID');
+        return;
+      }
+
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('loadingIndicator').style.display = 'block';
+      document.getElementById('resultsView').style.display = 'none';
+
+      try {
+        var headers = {
+          'x-tenant-id': TENANT_ID,
+          'x-api-key': API_KEY,
+          'Content-Type': 'application/json'
+        };
+
+        // 1. Fetch User Summary & Profile
+        var summaryReq = fetch(API_BASE + '/users/' + encodeURIComponent(userId) + '/summary', { headers: headers });
+
+        // 2. Fetch User Latest Events (Flattened top-level fields)
+        var eventsReq = fetch(API_BASE + '/users/' + encodeURIComponent(userId) + '/events?limit=20', { headers: headers });
+
+        // 3. Fetch Behavioral Risk Score
+        var riskReq = fetch(API_BASE + '/users/' + encodeURIComponent(userId) + '/risk', { headers: headers });
+
+        var [summaryRes, eventsRes, riskRes] = await Promise.all([summaryReq, eventsReq, riskReq]);
+
+        var summaryData = summaryRes.ok ? await summaryRes.json() : null;
+        var eventsData = eventsRes.ok ? await eventsRes.json() : null;
+        var riskData = riskRes.ok ? await riskRes.json() : null;
+
+        renderResults(userId, summaryData, eventsData, riskData);
+      } catch (err) {
+        alert('Error fetching user data: ' + err.message);
+      } finally {
+        document.getElementById('loadingIndicator').style.display = 'none';
+      }
+    }
+
+    function renderResults(userId, summary, eventsObj, risk) {
+      document.getElementById('resultsView').style.display = 'block';
+
+      // 1. Render Risk Assessment
+      var scoreVal = 10;
+      var riskLevel = 'LOW';
+      var recAction = 'ALLOW';
+      var confidence = 0.5;
+      var signals = [];
+      var features = {};
+      var evaluatedSession = 'None';
+      var evaluatedAt = new Date().toLocaleString();
+
+      if (risk && typeof risk.riskScore === 'number') {
+        scoreVal = risk.riskScore;
+        riskLevel = risk.riskLevel || 'LOW';
+        recAction = risk.recommendedAction || 'ALLOW';
+        confidence = risk.confidence || 0.5;
+        signals = risk.signals || [];
+        features = risk.featuresSummary || {};
+        evaluatedSession = risk.sessionId || 'N/A';
+        evaluatedAt = new Date(risk.evaluatedAt).toLocaleString();
+      }
+
+      document.getElementById('riskScoreVal').innerText = scoreVal;
+      document.getElementById('riskActionVal').innerText = recAction;
+      document.getElementById('riskConfidenceVal').innerText = Math.round(confidence * 100) + '%';
+      document.getElementById('riskSessionVal').innerText = evaluatedSession;
+      document.getElementById('riskTimestampVal').innerText = evaluatedAt;
+
+      // Color badge & meter
+      var badgeEl = document.getElementById('riskLevelBadge');
+      var meterEl = document.getElementById('riskMeterFill');
+      badgeEl.innerText = riskLevel + ' RISK';
+      meterEl.style.width = Math.min(100, Math.max(5, scoreVal)) + '%';
+
+      if (riskLevel === 'CRITICAL') {
+        badgeEl.className = 'badge badge-critical';
+        meterEl.style.background = '#ef4444';
+        document.getElementById('riskActionVal').style.color = '#ef4444';
+      } else if (riskLevel === 'HIGH') {
+        badgeEl.className = 'badge badge-high';
+        meterEl.style.background = '#f87171';
+        document.getElementById('riskActionVal').style.color = '#f87171';
+      } else if (riskLevel === 'MEDIUM') {
+        badgeEl.className = 'badge badge-medium';
+        meterEl.style.background = '#f59e0b';
+        document.getElementById('riskActionVal').style.color = '#f59e0b';
+      } else {
+        badgeEl.className = 'badge badge-low';
+        meterEl.style.background = '#10b981';
+        document.getElementById('riskActionVal').style.color = '#34d399';
+      }
+
+      // 2. Render Contributing Signals
+      var sigContainer = document.getElementById('signalsContainer');
+      if (signals.length > 0) {
+        sigContainer.innerHTML = signals.map(function(s) {
+          var sevClass = s.severity || 'INFO';
+          return '<div class="signal-item ' + sevClass + '">' +
+            '<div>' + (sevClass === 'HIGH' ? '⚠️' : 'ℹ️') + '</div>' +
+            '<div class="signal-content">' +
+              '<div class="signal-title">[' + sevClass + '] ' + s.code + '</div>' +
+              '<div class="signal-desc">' + s.description + '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      } else {
+        sigContainer.innerHTML = '<div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 12px 16px; border-radius: 8px; color: #34d399; font-size: 13px;">' +
+          '✅ <strong>Clean Biometric Profile:</strong> All pointer trajectories exhibit natural human jitter, typing cadence is within biological bounds, and no automated bot signatures were detected.' +
+          '</div>';
+      }
+
+      // 3. Render Features
+      document.getElementById('featFlightTime').innerText = features.meanFlightTimeMs ? features.meanFlightTimeMs + ' ms' : 'N/A';
+      document.getElementById('featCadence').innerText = features.meanCadenceKeysPerSec ? features.meanCadenceKeysPerSec + ' kps' : 'N/A';
+      document.getElementById('featPointerSpeed').innerText = features.meanPointerSpeed ? features.meanPointerSpeed + ' px/ms' : 'N/A';
+      document.getElementById('featEventsCount').innerText = features.eventCount || (eventsObj && eventsObj.events ? eventsObj.events.length : 0);
+
+      // 4. Render Summary
+      if (summary) {
+        document.getElementById('sumTotalEvents').innerText = summary.totalEvents || 0;
+        document.getElementById('sumTotalSessions').innerText = summary.totalSessions || 0;
+        var durSec = Math.round((summary.engagement && summary.engagement.totalActiveDurationMs || 0) / 1000);
+        document.getElementById('sumActiveTime').innerText = durSec + 's';
+        document.getElementById('sumMaxScroll').innerText = (summary.engagement && summary.engagement.maxScrollDepth || 0) + '%';
+        document.getElementById('sumFirstSeen').innerText = summary.firstSeenAt ? new Date(summary.firstSeenAt).toLocaleString() : 'N/A';
+        document.getElementById('sumLastSeen').innerText = summary.lastSeenAt ? new Date(summary.lastSeenAt).toLocaleString() : 'N/A';
+
+        var catList = document.getElementById('categoryPillList');
+        catList.innerHTML = '';
+        if (summary.categoryBreakdown) {
+          for (var cat in summary.categoryBreakdown) {
+            catList.innerHTML += '<span class="tag" style="background: #1e293b; color: #93c5fd; font-size: 12px; padding: 4px 10px;">' + cat + ': ' + summary.categoryBreakdown[cat] + '</span>';
+          }
+        }
+      }
+
+      // 5. Render Events Table with Flattened Fields
+      var tbody = document.getElementById('eventsTableBody');
+      tbody.innerHTML = '';
+      var events = eventsObj && eventsObj.events ? eventsObj.events : [];
+      if (events.length > 0) {
+        events.forEach(function(ev) {
+          var pointerInfo = '-';
+          if (ev.pointerX !== null && ev.pointerX !== undefined) {
+            pointerInfo = '(' + Math.round(ev.pointerX) + ', ' + Math.round(ev.pointerY) + ')';
+            if (ev.pointerSpeedPxPerMs) pointerInfo += ' @ ' + ev.pointerSpeedPxPerMs.toFixed(2) + ' px/ms';
+          }
+
+          var keyInfo = '-';
+          if (ev.flightTimeMs !== null && ev.flightTimeMs !== undefined) {
+            keyInfo = ev.flightTimeMs + 'ms flight';
+            if (ev.keysPerSecond) keyInfo += ' (' + ev.keysPerSecond + ' kps)';
+          }
+
+          var metaInfo = '-';
+          if (ev.flowType) metaInfo = 'Flow: ' + ev.flowType;
+          else if (ev.fieldId) metaInfo = 'Field: ' + ev.fieldId + (ev.pasteDetected ? ' [PASTE]' : '');
+          else if (ev.paymentStatus) metaInfo = 'Status: ' + ev.paymentStatus;
+          else if (ev.targetCategory) metaInfo = 'Target: ' + ev.targetCategory;
+
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td>#' + (ev.sequenceNumber || 0) + '</td>' +
+            '<td style="color: #fff; font-weight: 500;">' + ev.eventName + '</td>' +
+            '<td><span class="tag">' + ev.eventCategory + '</span></td>' +
+            '<td>' + pointerInfo + '</td>' +
+            '<td>' + keyInfo + '</td>' +
+            '<td>' + metaInfo + '</td>' +
+            '<td style="color: #94a3b8;">' + new Date(ev.timestamp).toLocaleTimeString() + '</td>';
+          tbody.appendChild(tr);
+        });
+      } else {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">No events recorded yet for this user.</td></tr>';
+      }
+
+      // Raw JSON preview
+      document.getElementById('rawJsonContent').innerText = JSON.stringify({
+        summary: summary,
+        risk: risk,
+        recentEventsSample: events.slice(0, 5)
+      }, null, 2);
+    }
+  </script>
+</body>
+</html>

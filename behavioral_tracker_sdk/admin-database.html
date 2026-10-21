@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Database Adapter Architecture & Switcher — PostgreSQL & MongoDB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --card-border: #1f2937;
+      --card-hover: #1e293b;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #8b5cf6;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --pg-blue: #336791;
+      --mongo-green: #00ed64;
+      --radius: 12px;
+      --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-main);
+      min-height: 100vh;
+      padding: 30px 20px 80px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1160px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 24px;
+      margin-bottom: 28px;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #2563eb, #10b981);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 18px rgba(37, 99, 235, 0.4);
+    }
+
+    h1 {
+      font-size: 23px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #fff;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 10px;
+    }
+
+    .nav-btn {
+      text-decoration: none;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .nav-btn:hover {
+      color: #fff;
+      border-color: #374151;
+      background: #1f2937;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35);
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #fff;
+    }
+
+    /* Active Banner */
+    .active-banner {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(16, 185, 129, 0.15));
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: var(--radius);
+      padding: 22px 26px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 18px;
+    }
+
+    .active-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .pulse-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 12px var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .active-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .active-name {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-pg {
+      background: rgba(51, 103, 145, 0.3);
+      color: #60a5fa;
+      border: 1px solid rgba(51, 103, 145, 0.6);
+    }
+
+    .badge-mongo {
+      background: rgba(0, 237, 100, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(0, 237, 100, 0.4);
+    }
+
+    .badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .badge-danger  { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+
+    /* Grid for database cards */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 860px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .db-card {
+      background: #0d1424;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+
+    .db-card.is-active {
+      border-color: #3b82f6;
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+    }
+
+    .db-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .db-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .db-logo {
+      font-size: 26px;
+      width: 44px;
+      height: 44px;
+      background: #162032;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #263345;
+    }
+
+    .db-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .db-engine {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .config-list {
+      list-style: none;
+      margin-bottom: 18px;
+      font-size: 13px;
+    }
+
+    .config-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .config-key {
+      color: var(--text-muted);
+    }
+
+    .config-val {
+      color: #fff;
+      font-family: var(--font-mono);
+      font-weight: 500;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      flex: 1;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #1d4ed8, #1e40af);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #1f2937;
+      border: 1px solid #374151;
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #374151;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: #fff;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: linear-gradient(135deg, #047857, #059669);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Auth bar */
+    .auth-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 22px;
+      background: #0d1424;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      font-size: 13px;
+    }
+
+    .auth-input {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 6px;
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 6px 10px;
+      outline: none;
+    }
+
+    /* Tables */
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      background: #0f172a;
+      padding: 12px 14px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--card-border);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .status-toast {
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .toast-success { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; }
+    .toast-error   { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; }
+    .toast-info    { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Top Header -->
+    <header>
+      <div class="brand-title">
+        <div class="brand-icon">🔄</div>
+        <div>
+          <h1>Dual Database Architecture & Switcher</h1>
+          <div class="subtitle">PostgreSQL + MongoDB High-Throughput Event Ingestion Adapters</div>
+        </div>
+      </div>
+      <div class="nav-links">
+        <a href="user-inspector.html" class="nav-btn">← Biometrics Explorer</a>
+        <a href="nexus-bank.html" class="nav-btn">Nexus Bank Demo →</a>
+        <a href="test-page-v2.html" class="nav-btn">Test Suite →</a>
+      </div>
+    </header>
+
+    <!-- Administrative Authorization Bar -->
+    <div class="auth-bar">
+      <span style="font-weight:600; color:#fff;">🔐 Admin Authentication:</span>
+      <label>Tenant: <input type="text" id="cfgTenantId" class="auth-input" value="tenant_test001" style="width:130px;" /></label>
+      <label>API Key: <input type="password" id="cfgApiKey" class="auth-input" value="changeme-secret" style="width:160px;" /></label>
+      <button class="btn btn-secondary" style="flex:none; padding:6px 14px;" onclick="refreshAllStatus()">Refresh Status</button>
+    </div>
+
+    <!-- Alert / Toast Banner -->
+    <div id="statusToast" class="status-toast toast-info">
+      <span id="toastMsg">Ready</span>
+      <button onclick="dismissToast()" style="background:none; border:none; color:inherit; cursor:pointer; font-size:16px;">×</button>
+    </div>
+
+    <!-- Active Database Banner -->
+    <div class="active-banner">
+      <div class="active-info">
+        <div class="pulse-dot"></div>
+        <div>
+          <div class="active-label">Active Persisted Ingestion Database</div>
+          <div class="active-name" id="activeDbTitle">
+            <span id="activeDbText">Loading...</span>
+            <span id="activeDbBadge" class="badge badge-pg">PostgreSQL</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+            Incoming events from <code>/collect</code> and <code>/api/analytics/events/batch</code> route directly to this adapter.
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-primary" onclick="triggerTestIngestion()">
+          ⚡ Ingest Test Event to Active DB
+        </button>
+      </div>
+    </div>
+
+    <!-- Database Engine Cards Grid -->
+    <div class="grid-2">
+
+      <!-- 1. PostgreSQL Card -->
+      <div class="db-card" id="cardPostgres">
+        <div>
+          <div class="db-header">
+            <div class="db-title-group">
+              <div class="db-logo">🐘</div>
+              <div>
+                <div class="db-name">PostgreSQL Adapter</div>
+                <div class="db-engine">Relational + JSONB Document Persistence</div>
+              </div>
+            </div>
+            <span id="statusBadgePg" class="badge badge-warning">Checking...</span>
+          </div>
+
+          <ul class="config-list">
+            <li class="config-item">
+              <span class="config-key">Host & Port</span>
+              <span class="config-val" id="pgHostPort">localhost:5432</span>
+            </li>
+            <li class="config-item">
+              <span class="config-key">Database</span>
+              <span class="config-val" id="pgDatabase">behavioral_events</span>
+            </li>
+            <li class="config-item">
+              <span class="config-key">User</span>
+              <span class="config-val" id="pgUser">app_user</span>
+            </li>
+            <li class="config-item">
+              <span class="config-key">SSL</span>
+              <span class="config-val" id="pgSsl">false</span>
+            </li>
+            <li class="config-item">
+              <span class="config-key">Health & Latency</span>
+              <span class="config-val" id="pgLatency">-</span>
+            </li>
+            <li class="config-item">
+              <span class="config-key">Connection Pool</span>
+              <span class="config-val" id="pgPoolStats">Max: 20</span>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="btn-row">
+            <button class="btn btn-secondary" onclick="testConnection('postgresql')">
+              🔍 Test Connection
+            </button>
+            <button class="btn btn-success" id="btnActivatePg" onclick="switchDatabase('postgresql')">
+              Activate PostgreSQL
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. MongoDB Card -->
+      <div class="db-card" id="cardMongo">
+        <div>
+          <div class="db-header">
+            <div class="db-title-group">
+              <div class="db-logo">🍃</div>
+              <div>
+                <div class="db-name">MongoDB Adapter</div>
+                <div class="db-engine">BSON Document & Multi-Session Ingestion</div>
+              </div>
+            </div>
+            <span id="statusBadgeMongo" class="badge badge-warning">Checking...</span>
+          </div>
+
+          <ul class="config-list">
+            <li class="config-item">
+              <span class="config-key">Target URI</span>
+              <span class="config-val" id="mongoUri">mongodb://localhost:27017/xylium</span>
+            </li>
+            <li class="config-item">
+              <span class="config-key">Database</span>
+              <span class="config-val" id="mongoDatabase">xylium</span>
+            </li>
+            <li class="config-item">
+              <span class="config-key">Health & Latency</span>
+              <span class="config-val" id="mongoLatency">-</span>
+            </li>
+            <li class="config-item">
+              <span class="config-key">Ready State</span>
+              <span class="config-val" id="mongoReadyState">Connected (1)</span>
+            </li>
+            <li class="config-item">
+              <span class="config-key">Collection</span>
+              <span class="config-val">behaviour_events</span>
+            </li>
+            <li class="config-item">
+              <span class="config-key">Connection Pool</span>
+              <span class="config-val" id="mongoPoolStats">Max: 20</span>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="btn-row">
+            <button class="btn btn-secondary" onclick="testConnection('mongodb')">
+              🔍 Test Connection
+            </button>
+            <button class="btn btn-success" id="btnActivateMongo" onclick="switchDatabase('mongodb')">
+              Activate MongoDB
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Switch History & Audit Log -->
+    <div class="card">
+      <div class="card-title">
+        <span>📜 Database Switching Audit Log</span>
+        <button class="btn btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="loadSwitchHistory()">Refresh Log</button>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Admin / Principal</th>
+              <th>From</th>
+              <th>To</th>
+              <th>Status</th>
+              <th>Message / Operational Notes</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <tr>
+              <td colspan="6" style="text-align:center; color:var(--text-muted);">Loading audit history...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Live Event Verification Inspector -->
+    <div class="card" id="testResultCard" style="display:none;">
+      <div class="card-title">
+        <span>🧪 Test Ingestion Verification Result</span>
+        <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="document.getElementById('testResultCard').style.display='none'">Close</button>
+      </div>
+      <pre id="testResultJson" style="background:#0a0f1d; padding:14px; border-radius:8px; font-family:var(--font-mono); font-size:12px; overflow-x:auto; color:#a7f3d0;"></pre>
+    </div>
+
+  </div>
+
+  <script>
+    var API_ROOT = (window.location.port === '8080') ? window.location.origin : 'http://localhost:8080';
+
+    function getAuthHeaders() {
+      var tenantId = document.getElementById('cfgTenantId').value.trim();
+      var apiKey = document.getElementById('cfgApiKey').value.trim();
+      return {
+        'Content-Type': 'application/json',
+        'x-tenant-id': tenantId,
+        'x-api-key': apiKey,
+      };
+    }
+
+    function showToast(msg, type) {
+      var el = document.getElementById('statusToast');
+      var txt = document.getElementById('toastMsg');
+      el.className = 'status-toast ' + (type === 'error' ? 'toast-error' : (type === 'success' ? 'toast-success' : 'toast-info'));
+      txt.textContent = msg;
+      el.style.display = 'flex';
+      setTimeout(function() { el.style.display = 'none'; }, 6000);
+    }
+
+    function dismissToast() {
+      document.getElementById('statusToast').style.display = 'none';
+    }
+
+    async function refreshAllStatus() {
+      try {
+        var res = await fetch(API_ROOT + '/api/admin/database/status', {
+          headers: getAuthHeaders(),
+        });
+
+        if (!res.ok) {
+          if (res.status === 401) {
+            showToast('Authentication failed: check Tenant ID and API Key', 'error');
+            return;
+          }
+          throw new Error('Status query failed: HTTP ' + res.status);
+        }
+
+        var data = await res.json();
+        renderStatus(data);
+        loadSwitchHistory();
+      } catch (err) {
+        showToast('Error refreshing status: ' + err.message, 'error');
+      }
+    }
+
+    function renderStatus(data) {
+      var active = data.activeDatabase;
+      document.getElementById('activeDbText').textContent = active.toUpperCase();
+      var badge = document.getElementById('activeDbBadge');
+
+      if (active === 'postgresql') {
+        badge.className = 'badge badge-pg';
+        badge.textContent = 'PostgreSQL Active';
+        document.getElementById('cardPostgres').classList.add('is-active');
+        document.getElementById('cardMongo').classList.remove('is-active');
+        document.getElementById('btnActivatePg').disabled = true;
+        document.getElementById('btnActivatePg').textContent = 'Currently Active';
+        document.getElementById('btnActivateMongo').disabled = false;
+        document.getElementById('btnActivateMongo').textContent = 'Activate MongoDB';
+      } else {
+        badge.className = 'badge badge-mongo';
+        badge.textContent = 'MongoDB Active';
+        document.getElementById('cardMongo').classList.add('is-active');
+        document.getElementById('cardPostgres').classList.remove('is-active');
+        document.getElementById('btnActivateMongo').disabled = true;
+        document.getElementById('btnActivateMongo').textContent = 'Currently Active';
+        document.getElementById('btnActivatePg').disabled = false;
+        document.getElementById('btnActivatePg').textContent = 'Activate PostgreSQL';
+      }
+
+      // PostgreSQL info
+      var pg = data.databases && data.databases.postgresql;
+      if (pg) {
+        var pgBadge = document.getElementById('statusBadgePg');
+        if (pg.status === 'healthy') {
+          pgBadge.className = 'badge badge-success';
+          pgBadge.textContent = 'Healthy';
+          document.getElementById('pgLatency').textContent = (pg.latencyMs || 0) + ' ms';
+        } else if (pg.status === 'unhealthy') {
+          pgBadge.className = 'badge badge-danger';
+          pgBadge.textContent = 'Unhealthy';
+          document.getElementById('pgLatency').textContent = pg.error || 'Connection Error';
+        } else {
+          pgBadge.className = 'badge badge-warning';
+          pgBadge.textContent = 'Idle / Standby';
+          document.getElementById('pgLatency').textContent = 'Standby';
+        }
+      }
+
+      // MongoDB info
+      var mg = data.databases && data.databases.mongodb;
+      if (mg) {
+        var mgBadge = document.getElementById('statusBadgeMongo');
+        if (mg.status === 'healthy') {
+          mgBadge.className = 'badge badge-success';
+          mgBadge.textContent = 'Healthy';
+          document.getElementById('mongoLatency').textContent = (mg.latencyMs || 0) + ' ms';
+        } else if (mg.status === 'unhealthy') {
+          mgBadge.className = 'badge badge-danger';
+          mgBadge.textContent = 'Unhealthy';
+          document.getElementById('mongoLatency').textContent = mg.error || 'Error';
+        } else {
+          mgBadge.className = 'badge badge-warning';
+          mgBadge.textContent = 'Idle / Standby';
+          document.getElementById('mongoLatency').textContent = 'Standby';
+        }
+      }
+    }
+
+    async function testConnection(type) {
+      showToast('Testing ' + type + ' connection...', 'info');
+      try {
+        var res = await fetch(API_ROOT + '/api/admin/database/test-connection', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ databaseType: type }),
+        });
+        var data = await res.json();
+        if (data.ok) {
+          showToast('✅ ' + type.toUpperCase() + ' connection healthy! Latency: ' + data.latencyMs + 'ms', 'success');
+        } else {
+          showToast('❌ ' + type.toUpperCase() + ' connection failed: ' + (data.error || 'Unknown error'), 'error');
+        }
+        refreshAllStatus();
+      } catch (err) {
+        showToast('Error testing ' + type + ': ' + err.message, 'error');
+      }
+    }
+
+    async function switchDatabase(targetType) {
+      if (!confirm('Are you sure you want to switch the active database to ' + targetType.toUpperCase() + '?\n\nAll subsequent event ingestion traffic will be routed to this adapter.')) {
+        return;
+      }
+
+      showToast('Validating and activating ' + targetType + '...', 'info');
+      try {
+        var res = await fetch(API_ROOT + '/api/admin/database/switch', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ databaseType: targetType }),
+        });
+
+        var data = await res.json();
+        if (res.ok && data.ok) {
+          showToast('🎉 Successfully switched active database to ' + targetType.toUpperCase() + '!', 'success');
+        } else {
+          showToast('❌ Switch rejected: ' + (data.error || data.message || 'Operation failed'), 'error');
+        }
+        refreshAllStatus();
+      } catch (err) {
+        showToast('Switch failed: ' + err.message, 'error');
+      }
+    }
+
+    async function loadSwitchHistory() {
+      try {
+        var res = await fetch(API_ROOT + '/api/admin/database/switch-history', {
+          headers: getAuthHeaders(),
+        });
+        if (!res.ok) return;
+        var data = await res.json();
+        var tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = '';
+
+        if (!data.history || data.history.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No switch history recorded.</td></tr>';
+          return;
+        }
+
+        data.history.forEach(function(item) {
+          var tr = document.createElement('tr');
+          var statusBadge = item.status === 'SUCCESS'
+            ? '<span class="badge badge-success">SUCCESS</span>'
+            : '<span class="badge badge-danger">FAILED</span>';
+
+          tr.innerHTML =
+            '<td style="font-family:var(--font-mono); font-size:12px;">' + new Date(item.timestamp).toLocaleString() + '</td>' +
+            '<td><strong>' + (item.admin || 'admin') + '</strong></td>' +
+            '<td><span class="badge badge-pg">' + (item.fromDatabase || 'none') + '</span></td>' +
+            '<td><span class="badge badge-mongo">' + (item.toDatabase || 'none') + '</span></td>' +
+            '<td>' + statusBadge + '</td>' +
+            '<td style="color:' + (item.status === 'SUCCESS' ? '#34d399' : '#f87171') + '">' + (item.message || item.error || '-') + '</td>';
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        console.warn('History load error:', e);
+      }
+    }
+
+    async function triggerTestIngestion() {
+      showToast('Sending live test event batch...', 'info');
+      try {
+        var testEvent = {
+          eventId: 'test_evt_' + Date.now(),
+          sessionId: 'sess_admin_test_' + Date.now(),
+          eventName: 'admin_test_ping',
+          eventCategory: 'custom',
+          timestamp: new Date().toISOString(),
+          sanitizedRoute: '/admin/database',
+          properties: {
+            triggeredBy: 'admin_dashboard',
+            testNote: 'Dual database architecture verification ping',
+          },
+        };
+
+        var res = await fetch(API_ROOT + '/api/analytics/events/batch', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ events: [testEvent] }),
+        });
+
+        var data = await res.json();
+        if (res.ok) {
+          showToast('✅ Test event ingested successfully into active database!', 'success');
+          document.getElementById('testResultCard').style.display = 'block';
+          document.getElementById('testResultJson').textContent = JSON.stringify({
+            ingestionResponse: data,
+            persistedEvent: testEvent,
+          }, null, 2);
+        } else {
+          showToast('Ingestion failed: ' + (data.error || 'Unknown error'), 'error');
+        }
+      } catch (err) {
+        showToast('Error during test ingestion: ' + err.message, 'error');
+      }
+    }
+
+    // Auto-refresh on boot
+    window.addEventListener('DOMContentLoaded', function() {
+      refreshAllStatus();
+      setInterval(refreshAllStatus, 10000);
+    });
+  </script>
+</body>
+</html>

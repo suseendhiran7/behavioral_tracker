@@ -5,12 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nexus Bank — Personal & Business Banking</title>
 
-<!-- Xylium SDK -->
+<!-- Xylium Biometric Fingerprint SDK -->
 <script src="xylium-bf-v2.js"
         data-tenant-id="tenant_test001"
         data-app-id="app_test001"
         data-api-endpoint="http://localhost:8080"
         data-capture-geo="false">
+</script>
+
+<!-- Centralized Behavioral Fingerprinting SDK -->
+<script src="analytics-tracker.js"></script>
+<script>
+  window.behaviorSDK = window.BehaviorSDK ? window.BehaviorSDK.init({
+    endpoint: 'http://localhost:8080/api/analytics',
+    clientId: 'client_nexus_bank',
+    tenantId: 'tenant_test001',
+    consent: true
+  }) : null;
 </script>
 
 <style>
@@ -1694,6 +1705,7 @@
         <li><a onclick="showDashSection('investments')" id="nav-investments">Investments</a></li>
         <li><a onclick="showDashSection('loans')" id="nav-loans">Loans</a></li>
         <li><a onclick="showDashSection('profile')" id="nav-profile">Profile</a></li>
+        <li><a href="admin-database.html" style="color:#60a5fa;" target="_blank">🔄 DB Switcher</a></li>
       </ul>
     </div>
     <div class="dash-nav-right">
@@ -2412,9 +2424,15 @@ function showPage(name) {
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   var target = document.getElementById('page-' + name);
   if (target) target.classList.add('active');
+  if (window.behaviorSDK) {
+    window.behaviorSDK.trackPageView('/' + name);
+  }
   if (name === 'dashboard') {
     buildChart();
     buildStatements();
+    if (window.behaviorSDK) {
+      window.behaviorSDK.trackAccountPageView('checking_and_savings', 'dashboard_overview');
+    }
   }
 }
 
@@ -2432,6 +2450,10 @@ function showDashSection(name) {
   var navTarget = document.getElementById('nav-' + name);
   if (navTarget) navTarget.classList.add('active');
   if (name === 'statements') buildStatements();
+
+  if (window.behaviorSDK) {
+    window.behaviorSDK.trackAccountPageView(name, 'section_view');
+  }
 }
 
 // ── Login ───────────────────────────────────────────────────────
@@ -2449,6 +2471,10 @@ function handleLogin() {
   if (!pw) { pwErr.classList.remove('hidden'); valid = false; }
   if (!valid) return;
 
+  if (window.behaviorSDK) {
+    window.behaviorSDK.trackLoginAttempt({ method: 'password', usernameSupplied: !!un });
+  }
+
   var user = USERS.find(function(u) {
     return (u.username === un || u.id === un) && u.password === pw;
   });
@@ -2456,12 +2482,18 @@ function handleLogin() {
   if (!user) {
     pwErr.textContent = 'Incorrect Customer ID or password. Please try again.';
     pwErr.classList.remove('hidden');
+    if (window.behaviorSDK) {
+      window.behaviorSDK.trackLoginFailure('invalid_credentials');
+    }
     return;
   }
 
   // Identify user in Xylium SDK after successful login
   if (window.XyliumBF) {
     window.XyliumBF.identify(user.id);
+  }
+  if (window.behaviorSDK) {
+    window.behaviorSDK.trackLoginSuccess(user.id, { method: 'password' });
   }
 
   showPage('dashboard');
@@ -2470,6 +2502,7 @@ function handleLogin() {
 
 function handleLogout() {
   if (window.XyliumBF) window.XyliumBF._debugFlushNow();
+  if (window.behaviorSDK) window.behaviorSDK.trackLogout();
   document.getElementById('login-username').value = '';
   document.getElementById('login-password').value = '';
   showPage('landing');
@@ -2484,6 +2517,9 @@ function togglePassword() {
 // ── Modals ──────────────────────────────────────────────────────
 function showModal(name) {
   document.getElementById('modal-' + name).classList.add('open');
+  if (name === 'transfer-confirm' && window.behaviorSDK) {
+    window.behaviorSDK.trackStepUpAuthRequired('txn_pin_otp', 'transfer_confirmation');
+  }
 }
 
 function closeModal(name) {
@@ -2508,6 +2544,11 @@ function moveOTP(input, index) {
 // ── Transfer ────────────────────────────────────────────────────
 function confirmTransfer() {
   closeModal('transfer-confirm');
+  var txnId = 'TXN_' + Date.now();
+  if (window.behaviorSDK) {
+    window.behaviorSDK.trackPaymentFlowStart('bank_transfer', 'INR', 'domestic_neft');
+    window.behaviorSDK.trackPaymentConfirmation(txnId, 'succeeded', 'bank_transfer');
+  }
   showToast('₹10,000 transferred successfully to Priya Sharma', 'success');
 }
 
