@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Architecture Diagram</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 1400px;
+      height: 860px;
+      background: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #f8fafc;
+      padding: 30px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #1e293b;
+      padding-bottom: 16px;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+    .header .badge {
+      background: #1e3a8a;
+      color: #93c5fd;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid #2563eb;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-top: 20px;
+      flex: 1;
+    }
+    .col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .col-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 16px;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .card.highlight-blue {
+      border-color: #3b82f6;
+      background: linear-gradient(180deg, #1e293b 0%, #172554 100%);
+    }
+    .card.highlight-green {
+      border-color: #10b981;
+      background: linear-gradient(180deg, #1e293b 0%, #064e3b 100%);
+    }
+    .card.highlight-purple {
+      border-color: #8b5cf6;
+      background: linear-gradient(180deg, #1e293b 0%, #3b0764 100%);
+    }
+    .card.highlight-amber {
+      border-color: #f59e0b;
+      background: linear-gradient(180deg, #1e293b 0%, #451a03 100%);
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-subtitle {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .tag {
+      font-size: 10px;
+      font-weight: 600;
+      background: #0f172a;
+      color: #cbd5e1;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+    }
+    .flow-arrow {
+      text-align: center;
+      color: #38bdf8;
+      font-size: 18px;
+      line-height: 1;
+      margin: -6px 0;
+    }
+    .footer-bar {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>Behavioral Fingerprinting Platform — End-to-End System Architecture</h1>
+      <p style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Verified Component Topology, Continuous Biometrics Pipeline & Dual Database Ingestion Flow</p>
+    </div>
+    <div class="badge">Enterprise Banking Specification</div>
+  </div>
+
+  <div class="grid">
+    <!-- Col 1: Client Tier -->
+    <div class="col">
+      <div class="col-title">1. Client Tier & SDK</div>
+
+      <div class="card highlight-blue">
+        <div class="card-title">Bank Web / SPA
+          <span style="font-size: 11px; color: #60a5fa;">Origin</span>
+        </div>
+        <div class="card-subtitle">Customer portals, login gateways, transfer & checkout workflows</div>
+        <div class="tag-list">
+          <span class="tag">Next.js / React</span>
+          <span class="tag">Vanilla HTML</span>
+          <span class="tag">Mobile Web</span>
+        </div>
+      </div>
+
+      <div class="flow-arrow">▼ &nbsp; DOM Event Stream</div>
+
+      <div class="card highlight-blue">
+        <div class="card-title">Behavioral SDK v2.1.0
+          <span style="font-size: 11px; color: #60a5fa;">Engine</span>
+        </div>
+        <div class="card-subtitle">Continuous micro-interaction listeners & consent-gated telemetry</div>
+        <div class="tag-list">
+          <span class="tag">analytics-tracker.js</span>
+          <span class="tag">xylium-core.js</span>
+          <span class="tag">13 Pattern Modules</span>
+        </div>
+      </div>
+
+      <div class="flow-arrow">▼ &nbsp; Local Feature Derivation</div>
+
+      <div class="card">
+        <div class="card-title">Client Privacy Guard</div>
+        <div class="card-subtitle">Immediate credential stripping & key character masking at the point of origin</div>
+        <div class="tag-list">
+          <span class="tag">Zero Credential Capture</span>
+          <span class="tag">maskKey('char')</span>
+          <span class="tag">Password Excluded</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Col 2: Transport & Ingestion -->
+    <div class="col">
+      <div class="col-title">2. Ingestion & Security</div>
+
+      <div class="card">
+        <div class="card-title">Resilient Transport</div>
+        <div class="card-subtitle">Bounded event buffer, exponential backoff with jitter, sendBeacon unload</div>
+        <div class="tag-list">
+          <span class="tag">POST /collect</span>
+          <span class="tag">/events/batch</span>
+          <span class="tag">sendBeacon (text/plain)</span>
+        </div>
+      </div>
+
+      <div class="flow-arrow">▼ &nbsp; HTTPS / TLS 1.3 Transport</div>
+
+      <div class="card highlight-purple">
+        <div class="card-title">API Gateway & Guard
+          <span style="font-size: 11px; color: #c084fc;">Express</span>
+        </div>
+        <div class="card-subtitle">Rate limiting, strict CORS origin checks, Zod schema validation</div>
+        <div class="tag-list">
+          <span class="tag">tenantGuard (403)</span>
+          <span class="tag">apiKeyGuard</span>
+          <span class="tag">Rate Limit 3000/min</span>
+        </div>
+      </div>
+
+      <div class="flow-arrow">▼ &nbsp; Verified Payload</div>
+
+      <div class="card highlight-purple">
+        <div class="card-title">Identity Stitching</div>
+        <div class="card-subtitle">Binds anonymous sessionId to verified customer userId server-to-server</div>
+        <div class="tag-list">
+          <span class="tag">POST /identify</span>
+          <span class="tag">timingSafeEqual</span>
+          <span class="tag">Backfill Pre-Login</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Col 3: Processing & Risk -->
+    <div class="col">
+      <div class="col-title">3. Services & Analytics</div>
+
+      <div class="card highlight-amber">
+        <div class="card-title">Risk Scoring Engine
+          <span style="font-size: 11px; color: #fbbf24;">Analysis</span>
+        </div>
+        <div class="card-subtitle">Extracts features & produces explainable fraud indicators (0–100 score)</div>
+        <div class="tag-list">
+          <span class="tag">SUPERHUMAN_CADENCE</span>
+          <span class="tag">SYNTHETIC_POINTER</span>
+          <span class="tag">FORM_INJECTION</span>
+        </div>
+      </div>
+
+      <div class="flow-arrow">▼ &nbsp; Dynamic Database Routing</div>
+
+      <div class="card highlight-amber">
+        <div class="card-title">Dual Database Registry</div>
+        <div class="card-subtitle">Adapter pattern abstraction managing live zero-downtime database switching</div>
+        <div class="tag-list">
+          <span class="tag">DatabaseFactory</span>
+          <span class="tag">Atomic Switch</span>
+          <span class="tag">Concurrency Lock</span>
+        </div>
+      </div>
+
+      <div class="flow-arrow">▼ &nbsp; Normalized Event Document</div>
+
+      <div class="card">
+        <div class="card-title">Audit & Switch Logger</div>
+        <div class="card-subtitle">Records all administrative hot-swaps, latencies, and connection health</div>
+        <div class="tag-list">
+          <span class="tag">In-Memory Audit Log</span>
+          <span class="tag">Pre-Flight Ping</span>
+          <span class="tag">Safe Fallback</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Col 4: Persistence & Ops -->
+    <div class="col">
+      <div class="col-title">4. Persistence & Operations</div>
+
+      <div class="card highlight-green">
+        <div class="card-title">PostgreSQL Adapter
+          <span style="font-size: 11px; color: #34d399;">Relational</span>
+        </div>
+        <div class="card-subtitle">ACID transactional store with composite primary key and B-tree indexes</div>
+        <div class="tag-list">
+          <span class="tag">pk(tenant_id, event_id)</span>
+          <span class="tag">Chronological Indexes</span>
+          <span class="tag">pg.Pool (Max: 20)</span>
+        </div>
+      </div>
+
+      <div class="card highlight-green">
+        <div class="card-title">MongoDB Adapter
+          <span style="font-size: 11px; color: #34d399;">Document</span>
+        </div>
+        <div class="card-subtitle">Scalable JSON document repository with compound unique indexes & TTL</div>
+        <div class="tag-list">
+          <span class="tag">behaviour_events</span>
+          <span class="tag">sessions</span>
+          <span class="tag">RAW_TTL_DAYS</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Admin & Visualizer UI</div>
+        <div class="card-subtitle">Administrative control panel & single-user biometric risk inspection suite</div>
+        <div class="tag-list">
+          <span class="tag">admin-database.html</span>
+          <span class="tag">user-inspector.html</span>
+          <span class="tag">test-page-v2.html</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <div><strong>Confidential Banking Architecture Documentation</strong> — Verified Against Source Code Implementation (Xylium Behavioral Tracker v2.1.0)</div>
+    <div>Direction of Ingestion: Client Tier → API Gateway → Risk Engine → Dual Database</div>
+  </div>
+</body>
+</html>

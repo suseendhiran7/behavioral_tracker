@@ -70,12 +70,12 @@
   var config = {
     tenantId: attr('data-tenant-id', 'unknown'),
     appId: attr('data-app-id', 'unknown'),
-    apiEndpoint: attr('data-api-endpoint', null),
+    apiEndpoint: attr('data-api-endpoint', (typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'http://localhost:8080')),
     captureGeo: attr('data-capture-geo', 'false') === 'true',
     // Optional: backend IP-intelligence URL used by xylium-network-risk.js.
     // Defaults to <apiEndpoint>/ip-intel when not set.
     ipIntelEndpoint: attr('data-ip-intel-endpoint', null),
-    requireConsent: true,
+    requireConsent: attr('data-require-consent', 'false') === 'true',
     samplingRate: 1.0,
     batchSize: 100,
     flushIntervalMs: 10000,

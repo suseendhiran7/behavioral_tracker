@@ -1,20 +1,41 @@
 const mongoose = require('mongoose');
 const config = require('./config');
+const databaseRegistry = require('./config/database-registry');
 const createApp = require('./app');
 const { COLLECTIONS } = require('./models/EventStores');
 const { startForwardWorker } = require('./forward/worker');
 
 async function main() {
-  await mongoose.connect(config.mongoUri);
-  console.log(`[XyliumIngestion] connected to Mongo`);
+  // Connect Mongoose
+  try {
+    await mongoose.connect(config.mongoUri);
+    console.log(`[XyliumIngestion] connected to Mongo`);
 
-  if (config.rawTtlDays > 0) {
-    for (const name of COLLECTIONS) {
-      await mongoose.connection
-        .collection(name)
-        .createIndex({ receivedAt: 1 }, { expireAfterSeconds: config.rawTtlDays * 86400 })
-        .catch((e) => console.warn(`[server] TTL index setup failed for ${name}`, e.message));
+    if (config.rawTtlDays > 0) {
+      for (const name of COLLECTIONS) {
+        await mongoose.connection
+          .collection(name)
+          .createIndex({ receivedAt: 1 }, { expireAfterSeconds: config.rawTtlDays * 86400 })
+          .catch((e) => console.warn(`[server] TTL index setup failed for ${name}`, e.message));
+      }
     }
+  } catch (err) {
+    console.warn(`[server] MongoDB startup warning: ${err.message}`);
+  }
+
+  // Initialize Dual Database Registry with default active database in code (mongodb)
+  try {
+    let db = process.env.ACTIVE_DATABASE || 'mongodb';
+    await databaseRegistry.initialize(db);
+    const activeAdapter = databaseRegistry.getActiveAdapter();
+    const health = await activeAdapter.healthCheck();
+    if (health.status !== 'healthy') {
+      console.warn(`[server] Warning: Active database (${databaseRegistry.getActiveType()}) reported unhealthy status:`, health.error);
+    } else {
+      console.log(`[server] Active database (${databaseRegistry.getActiveType()}) verified healthy (${health.latencyMs}ms)`);
+    }
+  } catch (err) {
+    console.error(`[server] Active database initialization error: ${err.message}`);
   }
 
   const worker = startForwardWorker();
@@ -28,7 +49,7 @@ async function main() {
     console.log(`[server] received ${signal}, shutting down...`);
     server.close();
     await worker.close();
-    await mongoose.disconnect();
+    await databaseRegistry.shutdownAll();
     process.exit(0);
   };
   process.on('SIGINT', () => shutdown('SIGINT'));
