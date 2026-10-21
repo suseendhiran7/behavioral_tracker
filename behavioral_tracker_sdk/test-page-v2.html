@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Xylium Behavioral Tracker & Analytics Test Suite</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 30px auto; padding: 0 20px; line-height: 1.5; color: #222; }
+    h1 { color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+    .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 13px; font-weight: 600; background: #e2e8f0; color: #475569; }
+    .status-active { background: #dcfce7; color: #166534; }
+    .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    button { cursor: pointer; padding: 8px 14px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; font-weight: 500; transition: all 0.15s ease; }
+    button:hover { background: #f1f5f9; border-color: #94a3b8; }
+    button.primary { background: #2563eb; color: #fff; border-color: #1d4ed8; }
+    button.primary:hover { background: #1d4ed8; }
+    button.success { background: #16a34a; color: #fff; border-color: #15803d; }
+    button.danger { background: #dc2626; color: #fff; border-color: #b91c1c; }
+    input { display: block; width: 100%; padding: 8px 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+    pre { background: #0f172a; color: #f8fafc; padding: 14px; border-radius: 6px; overflow-x: auto; font-size: 13px; max-height: 320px; }
+  </style>
+</head>
+<body>
+  <h1>Xylium Behavioral Tracker & Analytics Test Suite</h1>
+  <p>End-to-end test interface for client-side biometric fingerprinting and user-linked behavioral analytics.</p>
+
+  <div class="card">
+    <h3>Session & Identity State</h3>
+    <p><strong>Session ID:</strong> <span id="lblSessionId">-</span></p>
+    <p><strong>Anonymous ID:</strong> <span id="lblAnonId">-</span></p>
+    <p><strong>Authenticated User:</strong> <span id="lblUserId" class="status-badge">Anonymous (Unlinked)</span></p>
+    <p><strong>Active Route:</strong> <span id="lblRoute">/</span></p>
+    <p><strong>Battery & Charging:</strong> <span id="lblBattery">-</span></p>
+  </div>
+
+  <div class="card">
+    <h3>1. Pre-Login Anonymous Behaviour</h3>
+    <p>Interactions here are captured anonymously, keyed on <code>sessionId</code>, and safe for login pages.</p>
+    <div class="btn-group">
+      <button onclick="window.XyliumBF && window.XyliumBF.grantConsent(); log('Consent granted');">Grant Consent</button>
+      <button data-track-id="explore_features_btn" data-track-hover="true" onclick="tracker.registerInteraction(); log('CTA Clicked: Explore Features');">Hover & Click Important CTA</button>
+      <button onclick="tracker.requestLocation(); log('Requested location');">Request Opt-In Location</button>
+    </div>
+    <input type="text" id="username" data-bf-field="username" placeholder="Username (typing dynamics tracked without recording content)" />
+    <input type="password" id="password" data-bf-field="password" placeholder="Password (zero value or credentials recorded)" />
+  </div>
+
+  <div class="card">
+    <h3>2. Authentication & Identity Linking</h3>
+    <p>Simulate logging in as User A or User B. Pre-login anonymous events are retroactively linked on the backend.</p>
+    <div class="btn-group">
+      <button class="primary" onclick="loginAs('user_alice_101')">Login as Alice (user_alice_101)</button>
+      <button class="primary" onclick="loginAs('user_bob_202')">Login as Bob (user_bob_202)</button>
+      <button class="danger" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>3. Authenticated Navigation & Page Engagement</h3>
+    <div class="btn-group">
+      <button onclick="navigateTo('/dashboard')">Go to /dashboard</button>
+      <button onclick="navigateTo('/products')">Go to /products</button>
+      <button onclick="navigateTo('/checkout')">Go to /checkout</button>
+      <button onclick="navigateTo('/checkout/payment')">Go to /checkout/payment</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>4. Banking & Financial Workflow Simulation</h3>
+    <p>Simulates banking lifecycle events: accounts, transfers, 2FA step-up challenges, and transaction outcomes.</p>
+    <div class="btn-group">
+      <button onclick="tracker.trackAccountPageView('savings', 'transactions_list'); log('Workflow: account_page_view');">View Savings Account</button>
+      <button onclick="tracker.trackPaymentFlowStart('wire_transfer', 'USD', 'international'); log('Workflow: payment_flow_start');">Start Wire Transfer</button>
+      <button onclick="tracker.trackStepUpAuthRequired('otp_sms', 'high_value_transfer'); log('Workflow: step_up_auth_required');">Trigger Step-Up 2FA</button>
+      <button class="success" onclick="tracker.trackPaymentConfirmation('txn_' + Date.now(), 'succeeded', 'wire_transfer'); log('Workflow: payment_confirmation');">Confirm Payment (Success)</button>
+      <button class="danger" onclick="tracker.trackTransactionFailure('insufficient_funds', 'wire_transfer'); log('Workflow: transaction_failure');">Fail Transaction</button>
+      <button onclick="tracker.trackSessionTimeout(300000); log('Workflow: session_timeout');">Simulate Session Timeout</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>5. Checkout & Server-Verified Payment Flow</h3>
+    <p>Simulates the checkout funnel and triggers authoritative server verification without exposing card details.</p>
+    <div class="btn-group">
+      <button onclick="tracker.trackCheckoutStep('checkout_viewed', { orderId: 'ord_901', amount: 89.99 }); log('Tracked: checkout_viewed');">View Checkout</button>
+      <button onclick="tracker.trackPaymentInitiated('ord_901', 89.99, 'USD', 'credit_card'); log('Tracked: payment_initiated');">Initiate Payment</button>
+      <button class="success" onclick="verifyPaymentOnServer('succeeded')">Verify Payment: Succeeded (Server-to-Server)</button>
+      <button class="danger" onclick="verifyPaymentOnServer('failed')">Verify Payment: Failed (Server-to-Server)</button>
+    </div>
+  </div>
+
+  <div class="card" style="border-left: 4px solid #2563eb;">
+    <h3>6. Behavioral Biometrics Risk Scoring & Explainable Signals</h3>
+    <p>Evaluates session biometrics (pointer velocity distribution, typing cadence, motor jitter, interaction flow) and generates explainable risk factors.</p>
+    <div class="btn-group">
+      <button class="primary" onclick="evaluateSessionRisk()">Evaluate Current Session Risk</button>
+      <button onclick="evaluateUserRisk()">Evaluate Authenticated User Risk</button>
+    </div>
+    <div id="riskScoreContainer" style="display: none; margin-top: 14px; padding: 12px; background: #fff; border-radius: 6px; border: 1px solid #cbd5e1;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <span style="font-size: 16px; font-weight: 600;">Risk Assessment:</span>
+        <span id="lblRiskBadge" class="status-badge" style="font-size: 14px;">-</span>
+      </div>
+      <p><strong>Risk Score:</strong> <span id="lblRiskScore">-</span> / 100 &nbsp;|&nbsp; <strong>Confidence:</strong> <span id="lblRiskConfidence">-</span> &nbsp;|&nbsp; <strong>Action:</strong> <span id="lblRiskAction">-</span></p>
+      <div id="riskSignalsList" style="margin-top: 8px; font-size: 13px;"></div>
+    </div>
+  </div>
+
+  <div class="card" style="border-left: 4px solid #10b981;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h3 style="margin: 0;">7. Query Single User Data & Behaviour Score</h3>
+      <a href="user-inspector.html" target="_blank" style="font-size: 13px; font-weight: 600; color: #2563eb; text-decoration: none;">Open Dedicated Full Inspector ↗</a>
+    </div>
+    <p>Retrieve single user journey metrics, category breakdown, recent flattened events, and their behavioral risk score.</p>
+    <div style="display: flex; gap: 8px; margin: 10px 0;">
+      <input type="text" id="customUserIdInput" placeholder="Enter User ID (e.g. user_alice_101)" value="user_alice_101" style="flex: 1; margin: 0;" />
+      <button class="primary" onclick="inspectSingleUserUI()">Inspect User & Score</button>
+    </div>
+    <div class="btn-group">
+      <button onclick="setQueryUser('user_alice_101')">Alice</button>
+      <button onclick="setQueryUser('user_bob_202')">Bob</button>
+      <button onclick="if(currentUser) setQueryUser(currentUser); else log('No user logged in');">Current Active User</button>
+      <button onclick="fetchUserEvents()">View User Events</button>
+      <button onclick="fetchUserSessions()">View User Sessions</button>
+      <button onclick="tracker.flush(false); log('Flushed event buffer');">Flush Buffer Now</button>
+    </div>
+
+    <!-- Formatted User Result Panel -->
+    <div id="singleUserResultPanel" style="display: none; margin-top: 14px; padding: 14px; background: #fff; border-radius: 8px; border: 1px solid #cbd5e1;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px;">
+        <span style="font-weight: 600; font-size: 15px;" id="uResTitle">User Profile & Behaviour Score</span>
+        <span id="uResRiskBadge" class="status-badge">-</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px;">
+        <div style="background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+          <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Risk Score</div>
+          <div style="font-size: 20px; font-weight: 700; color: #1e293b;" id="uResScore">-</div>
+        </div>
+        <div style="background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+          <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Recommendation</div>
+          <div style="font-size: 16px; font-weight: 700; color: #16a34a;" id="uResAction">-</div>
+        </div>
+        <div style="background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+          <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Total Events</div>
+          <div style="font-size: 20px; font-weight: 700; color: #1e293b;" id="uResEvents">-</div>
+        </div>
+        <div style="background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+          <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Total Sessions</div>
+          <div style="font-size: 20px; font-weight: 700; color: #1e293b;" id="uResSessions">-</div>
+        </div>
+      </div>
+      <div id="uResSignals" style="font-size: 13px; margin-bottom: 10px;"></div>
+      <div id="uResCategories" style="display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Live Output Log</h3>
+    <pre id="outputLog">// Test output will appear here...</pre>
+  </div>
+
+  <!-- Scroll test area -->
+  <div style="height: 1200px; background: linear-gradient(#f8fafc, #cbd5e1); border-radius: 8px; padding: 20px; text-align: center; color: #64748b;">
+    <p>Scroll down to trigger 25%, 50%, 75%, and 100% scroll depth milestones...</p>
+  </div>
+
+  <!-- 1. Existing Fingerprint SDK -->
+  <script src="xylium-bf-v2.js"
+          data-tenant-id="tenant_test001"
+          data-app-id="app_test001"
+          data-api-endpoint="http://localhost:8080"
+          data-capture-geo="false">
+  </script>
+
+  <!-- 2. Centralized Behaviour Analytics Tracker -->
+  <script src="analytics-tracker.js"></script>
+
+  <script>
+    var tracker = new BehaviourTracker({
+      apiEndpoint: 'http://localhost:8080/api/analytics',
+      tenantId: 'tenant_test001',
+      batchSize: 10,
+      flushIntervalMs: 3000
+    });
+
+    var currentUser = null;
+    var currentToken = null;
+
+    function updateUI() {
+      document.getElementById('lblSessionId').innerText = tracker.sessionId;
+      document.getElementById('lblAnonId').innerText = tracker.anonymousId;
+      var userEl = document.getElementById('lblUserId');
+      if (currentUser) {
+        userEl.innerText = currentUser + ' (Authenticated)';
+        userEl.className = 'status-badge status-active';
+      } else {
+        userEl.innerText = 'Anonymous (Unlinked)';
+        userEl.className = 'status-badge';
+      }
+      document.getElementById('lblRoute').innerText = tracker.currentRoute;
+      var batEl = document.getElementById('lblBattery');
+      if (tracker.batteryInfo && tracker.batteryInfo.batteryLevel !== null) {
+        batEl.innerText = Math.round(tracker.batteryInfo.batteryLevel * 100) + '% (' + (tracker.batteryInfo.isCharging ? 'Charging' : 'On Battery') + ')';
+      } else {
+        batEl.innerText = 'Detecting or not supported by browser';
+      }
+    }
+
+    function log(msg, data) {
+      var el = document.getElementById('outputLog');
+      var line = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+      if (data) line += '\n' + JSON.stringify(data, null, 2);
+      el.innerText = line + '\n\n' + el.innerText.slice(0, 3000);
+    }
+
+    function createSimpleJwt(userId) {
+      // Demo helper: standard HMAC JWT format for client test page
+      var header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" })).replace(/=/g, '');
+      var payload = btoa(JSON.stringify({ userId: userId, role: "user", exp: Math.floor(Date.now()/1000) + 3600 })).replace(/=/g, '');
+      return header + '.' + payload + '.simulated_client_demo_sig';
+    }
+
+    async function loginAs(userId) {
+      currentUser = userId;
+      // In production, token comes from /auth/login. Here we use customer API key on /sessions/link or auth token
+      currentToken = createSimpleJwt(userId);
+      tracker.loginSuccess(userId, currentToken);
+
+      // Perform server-to-server linking using test API key
+      try {
+        var res = await fetch('http://localhost:8080/api/analytics/sessions/link', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-tenant-id': 'tenant_test001',
+            'x-api-key': 'changeme-secret'
+          },
+          body: JSON.stringify({
+            sessionId: tracker.sessionId,
+            userId: userId,
+            anonymousId: tracker.anonymousId
+          })
+        });
+        var data = await res.json();
+        log('Session successfully linked to ' + userId, data);
+      } catch (err) {
+        log('Link error: ' + err.message);
+      }
+      updateUI();
+    }
+
+    function logout() {
+      currentUser = null;
+      currentToken = null;
+      tracker.logout();
+      log('User logged out. Identity boundary reset, new session created.');
+      updateUI();
+    }
+
+    function navigateTo(route) {
+      tracker.trackPageView(route);
+      log('Navigated to route: ' + route);
+      updateUI();
+    }
+
+    async function verifyPaymentOnServer(status) {
+      try {
+        var res = await fetch('http://localhost:8080/api/analytics/payments/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-tenant-id': 'tenant_test001',
+            'x-api-key': 'changeme-secret'
+          },
+          body: JSON.stringify({
+            paymentId: 'pay_' + Date.now(),
+            orderId: 'ord_901',
+            userId: currentUser || 'anonymous_buyer',
+            sessionId: tracker.sessionId,
+            amount: 89.99,
+            currency: 'USD',
+            status: status,
+            paymentMethodCategory: 'credit_card',
+            metadata: { gateway: 'stripe_mock' }
+          })
+        });
+        var data = await res.json();
+        log('Server Payment Verification (' + status + ')', data);
+      } catch (err) {
+        log('Payment verification error: ' + err.message);
+      }
+    }
+
+    function setQueryUser(uid) {
+      document.getElementById('customUserIdInput').value = uid;
+      inspectSingleUserUI();
+    }
+
+    async function inspectSingleUserUI() {
+      var targetId = document.getElementById('customUserIdInput').value.trim();
+      if (!targetId) return log('Please enter a User ID');
+
+      try {
+        var headers = { 'x-tenant-id': 'tenant_test001', 'x-api-key': 'changeme-secret' };
+
+        // Query both summary and risk score in parallel
+        var [sumRes, riskRes] = await Promise.all([
+          fetch('http://localhost:8080/api/analytics/users/' + encodeURIComponent(targetId) + '/summary', { headers: headers }),
+          fetch('http://localhost:8080/api/analytics/users/' + encodeURIComponent(targetId) + '/risk', { headers: headers })
+        ]);
+
+        var sumData = sumRes.ok ? await sumRes.json() : null;
+        var riskData = riskRes.ok ? await riskRes.json() : null;
+
+        log('Single User Inspection (' + targetId + ')', { summary: sumData, risk: riskData });
+
+        // Update UI Panel
+        var panel = document.getElementById('singleUserResultPanel');
+        panel.style.display = 'block';
+        document.getElementById('uResTitle').innerText = 'User: ' + targetId;
+
+        // Render Risk
+        if (riskData && typeof riskData.riskScore === 'number') {
+          document.getElementById('uResScore').innerText = riskData.riskScore + ' / 100';
+          document.getElementById('uResAction').innerText = riskData.recommendedAction || 'ALLOW';
+          var badge = document.getElementById('uResRiskBadge');
+          badge.innerText = (riskData.riskLevel || 'LOW') + ' RISK';
+          if (riskData.riskLevel === 'CRITICAL' || riskData.riskLevel === 'HIGH') {
+            badge.style.background = '#fee2e2'; badge.style.color = '#991b1b';
+          } else if (riskData.riskLevel === 'MEDIUM') {
+            badge.style.background = '#fef3c7'; badge.style.color = '#92400e';
+          } else {
+            badge.style.background = '#dcfce7'; badge.style.color = '#166534';
+          }
+
+          var sigs = riskData.signals || [];
+          var sigEl = document.getElementById('uResSignals');
+          if (sigs.length > 0) {
+            sigEl.innerHTML = '<strong>Biometric Flags:</strong><ul style="padding-left:18px; margin: 4px 0 0;">' +
+              sigs.map(function(s) { return '<li>[' + s.severity + '] ' + s.description + '</li>'; }).join('') + '</ul>';
+          } else {
+            sigEl.innerHTML = '<span style="color: #166534;">✅ Clean biometric human profile; no bot anomalies detected.</span>';
+          }
+        } else {
+          document.getElementById('uResScore').innerText = 'N/A';
+          document.getElementById('uResAction').innerText = 'No Sessions';
+          document.getElementById('uResSignals').innerHTML = '<span style="color: #64748b;">No recent session recorded to compute risk score.</span>';
+        }
+
+        // Render Summary
+        if (sumData) {
+          document.getElementById('uResEvents').innerText = sumData.totalEvents || 0;
+          document.getElementById('uResSessions').innerText = sumData.totalSessions || 0;
+
+          var catEl = document.getElementById('uResCategories');
+          catEl.innerHTML = '<strong>Categories:</strong> ';
+          if (sumData.categoryBreakdown) {
+            for (var c in sumData.categoryBreakdown) {
+              catEl.innerHTML += '<span style="background: #e2e8f0; padding: 2px 8px; border-radius: 99px;">' + c + ': ' + sumData.categoryBreakdown[c] + '</span> ';
+            }
+          }
+        }
+      } catch (err) {
+        log('Inspect User Error: ' + err.message);
+      }
+    }
+
+    async function fetchUserSummary() {
+      var targetId = document.getElementById('customUserIdInput').value.trim() || currentUser;
+      if (!targetId) return log('Please enter a User ID or log in first.');
+      try {
+        var res = await fetch('http://localhost:8080/api/analytics/users/' + targetId + '/summary', {
+          headers: { 'x-tenant-id': 'tenant_test001', 'x-api-key': 'changeme-secret' }
+        });
+        var data = await res.json();
+        log('User Summary (' + targetId + ')', data);
+      } catch (err) {
+        log('Fetch error: ' + err.message);
+      }
+    }
+
+    async function fetchUserEvents() {
+      var targetId = document.getElementById('customUserIdInput').value.trim() || currentUser;
+      if (!targetId) return log('Please enter a User ID or log in first.');
+      try {
+        var res = await fetch('http://localhost:8080/api/analytics/users/' + targetId + '/events?limit=15', {
+          headers: { 'x-tenant-id': 'tenant_test001', 'x-api-key': 'changeme-secret' }
+        });
+        var data = await res.json();
+        log('User Events (' + targetId + ')', data);
+      } catch (err) {
+        log('Fetch error: ' + err.message);
+      }
+    }
+
+    async function fetchUserSessions() {
+      var targetId = document.getElementById('customUserIdInput').value.trim() || currentUser;
+      if (!targetId) return log('Please enter a User ID or log in first.');
+      try {
+        var res = await fetch('http://localhost:8080/api/analytics/users/' + targetId + '/sessions', {
+          headers: { 'x-tenant-id': 'tenant_test001', 'x-api-key': 'changeme-secret' }
+        });
+        var data = await res.json();
+        log('User Sessions (' + targetId + ')', data);
+      } catch (err) {
+        log('Fetch error: ' + err.message);
+      }
+    }
+
+    async function evaluateSessionRisk() {
+      // First flush any buffered events so the backend has the latest biometrics
+      tracker.flush(false);
+      try {
+        var res = await fetch('http://localhost:8080/api/analytics/sessions/' + tracker.sessionId + '/risk', {
+          headers: {
+            'x-tenant-id': 'tenant_test001',
+            'x-api-key': 'changeme-secret'
+          }
+        });
+        var data = await res.json();
+        log('Session Risk Assessment (' + tracker.sessionId + ')', data);
+
+        if (data && typeof data.riskScore === 'number') {
+          var container = document.getElementById('riskScoreContainer');
+          container.style.display = 'block';
+          document.getElementById('lblRiskScore').innerText = data.riskScore;
+          document.getElementById('lblRiskConfidence').innerText = Math.round((data.confidence || 0) * 100) + '%';
+          document.getElementById('lblRiskAction').innerText = data.recommendedAction || 'ALLOW';
+
+          var badge = document.getElementById('lblRiskBadge');
+          badge.innerText = data.riskLevel || 'LOW';
+          if (data.riskLevel === 'CRITICAL' || data.riskLevel === 'HIGH') {
+            badge.style.background = '#fee2e2';
+            badge.style.color = '#991b1b';
+          } else if (data.riskLevel === 'MEDIUM') {
+            badge.style.background = '#fef3c7';
+            badge.style.color = '#92400e';
+          } else {
+            badge.style.background = '#dcfce7';
+            badge.style.color = '#166534';
+          }
+
+          var sigList = document.getElementById('riskSignalsList');
+          if (data.signals && data.signals.length > 0) {
+            sigList.innerHTML = '<strong>Contributing Signals:</strong><ul style="padding-left: 20px; margin-top: 4px;">' +
+              data.signals.map(function(s) {
+                return '<li><span style="font-weight: 500;">[' + s.severity + '] ' + s.code + ':</span> ' + s.description + '</li>';
+              }).join('') + '</ul>';
+          } else {
+            sigList.innerHTML = '<span style="color: #166534;">✅ No anomalous or automated bot signals detected. Session behavior within expected human thresholds.</span>';
+          }
+        }
+      } catch (err) {
+        log('Risk assessment error: ' + err.message);
+      }
+    }
+
+    async function evaluateUserRisk() {
+      if (!currentUser) return log('Please log in first to evaluate user-level historical risk.');
+      try {
+        var res = await fetch('http://localhost:8080/api/analytics/users/' + currentUser + '/risk', {
+          headers: {
+            'x-tenant-id': 'tenant_test001',
+            'x-api-key': 'changeme-secret'
+          }
+        });
+        var data = await res.json();
+        log('User Risk Assessment (' + currentUser + ')', data);
+        evaluateSessionRisk();
+      } catch (err) {
+        log('User risk assessment error: ' + err.message);
+      }
+    }
+
+    updateUI();
+    setTimeout(updateUI, 600);
+  </script>
+</body>
+</html>

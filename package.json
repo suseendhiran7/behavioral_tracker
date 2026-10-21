@@ -7,31 +7,20 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "jest --runInBand",
-    "test:watch": "jest --watch --runInBand"
+    "test": "node --test --test-concurrency=1 tests/*.test.js"
   },
   "dependencies": {
     "acorn": "^8.18.0",
     "acorn-walk": "^8.3.5",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "express-rate-limit": "^7.4.0",
-    "mongoose": "^8.5.0",
-    "multer": "^2.4.0",
-    "zod": "^3.23.8"
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "mongoose": "^8.9.5",
+    "pg": "^8.23.1",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
-    "supertest": "^7.0.0"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "setupFiles": [
-      "<rootDir>/tests/setupEnv.js"
-    ],
-    "testMatch": [
-      "<rootDir>/tests/**/*.test.js"
-    ]
+    "pg-mem": "^3.0.14"
   }
 }

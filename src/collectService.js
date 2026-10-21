@@ -1,7 +1,9 @@
 const config = require('./config');
 const { LoginEvent, SessionEvent, PaymentEvent } = require('./models/EventStores');
+const EventBatch = require('./models/EventBatch');
 const Session = require('./models/Session');
 const ipIntelService = require('./ipIntelService');
+const databaseRegistry = require('./config/database-registry');
 
 class BadRequestError extends Error {
   constructor(message) {
@@ -88,6 +90,9 @@ async function ingest(dto, clientIp) {
 
   const { buckets, endPhase, loginUserId, loggedOut } = splitEvents(dto.events, startPhase);
 
+  const identifyEvt = dto.events.find((e) => e.type === 'identify' && !!e.userId);
+  const browserUserId = identifyEvt ? identifyEvt.userId : (loginUserId || knownUserId || null);
+
   const base = {
     tenantId: dto.tenantId,
     appId: dto.appId,
@@ -95,6 +100,36 @@ async function ingest(dto, clientIp) {
     deviceFingerprint: dto.deviceFingerprint,
     clientIp,
   };
+
+  const mongoose = require('mongoose');
+  const activeType = databaseRegistry.getActiveType();
+  const activeAdapter = databaseRegistry.getActiveAdapter();
+
+  if (activeType === 'postgresql' && activeAdapter) {
+    const rawEvents = dto.events.map((e, idx) => ({
+      ...e,
+      sessionId,
+      tenantId: dto.tenantId,
+      clientId: dto.appId,
+      userId: e.userId || browserUserId || null,
+      sequenceNumber: typeof e.sequenceNumber === 'number' ? e.sequenceNumber : idx,
+      device: { fingerprint: dto.deviceFingerprint },
+    }));
+    await activeAdapter.saveEvents(rawEvents);
+  }
+
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
+    await EventBatch.create({
+      tenantId: dto.tenantId,
+      appId: dto.appId,
+      sessionId,
+      userId: browserUserId,
+      deviceFingerprint: dto.deviceFingerprint,
+      eventCount: dto.events.length,
+      events: dto.events,
+      clientIp,
+    }).catch((err) => console.warn('[collect] EventBatch.create warning:', err.message));
+  }
 
   const writes = [];
   if (buckets.login.length) {
@@ -156,6 +191,18 @@ async function ingest(dto, clientIp) {
  * onto the pre-login events already stored in login_events.
  */
 async function attachUserId(sessionId, userId, source, { setPhase = true } = {}) {
+  const activeType = databaseRegistry.getActiveType();
+  if (activeType === 'postgresql') {
+    const activeAdapter = databaseRegistry.getActiveAdapter();
+    if (activeAdapter && typeof activeAdapter.linkSessionEvents === 'function') {
+      try {
+        await activeAdapter.linkSessionEvents(sessionId, userId, 'default');
+      } catch (err) {
+        console.warn('[collect] postgres linkSessionEvents failed:', err.message);
+      }
+    }
+  }
+
   const $set = { userId, identifiedBy: source };
   if (setPhase) {
     $set.phase = 'session';
@@ -166,6 +213,8 @@ async function attachUserId(sessionId, userId, source, { setPhase = true } = {})
   console.log(
     `[collect] stitched userId=${userId} (${source}) onto session ${sessionId}; backfilled ${res.modifiedCount} login batch(es)`
   );
+  await EventBatch.updateMany({ sessionId }, { $set: { userId } }).catch(() => {});
+
   // Now that the user is known, score geo_is_new_country for this session.
   // Best-effort: a geo failure must never fail an identify.
   try {

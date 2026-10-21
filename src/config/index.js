@@ -49,16 +49,5 @@ module.exports = {
   rawTtlDays: parseInt(process.env.RAW_TTL_DAYS || '0', 10),
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
   rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '3000', 10),
-  ipIntel: {
-    provider: ipIntelProvider,
-    apiKey: process.env.IPQS_API_KEY || '',
-    strictness: parseInt(process.env.IPQS_STRICTNESS || '1', 10),
-    timeoutMs: parseInt(process.env.IP_INTEL_TIMEOUT_MS || '3000', 10),
-    cacheTtlMs: parseInt(process.env.IP_INTEL_CACHE_TTL_MS || String(6 * 60 * 60 * 1000), 10),
-    cacheMax: parseInt(process.env.IP_INTEL_CACHE_MAX || '10000', 10),
-    rateLimitWindowMs: parseInt(process.env.IP_INTEL_RATE_LIMIT_WINDOW_MS || '60000', 10),
-    rateLimitMax: parseInt(process.env.IP_INTEL_RATE_LIMIT_MAX || '30', 10),
-    // Dev only: public IP to classify instead of localhost. Ignored in production.
-    devIp: process.env.IP_INTEL_DEV_IP || '',
-  },
+  jwtSecret: process.env.JWT_SECRET || 'xylium-default-dev-secret-key-32chars!!',
 };
