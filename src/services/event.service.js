@@ -25,7 +25,7 @@ class EventService {
     const normalizedEvents = events.map((raw) =>
       normalizeEvent(raw, {
         tenantId: raw.tenantId || effectiveTenantId,
-        userId: effectiveUserId,
+        userId: effectiveUserId || raw.userId || null,
         clientId: raw.clientId || null,
         clientIp,
       })

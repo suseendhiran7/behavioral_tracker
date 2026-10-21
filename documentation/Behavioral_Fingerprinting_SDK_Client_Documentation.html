@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Behavioral Fingerprinting SDK — Client Technical Guide</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm 18mm 20mm 18mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.55;
+      color: #1e293b;
+      background: #ffffff;
+      padding: 0;
+    }
+    
+    /* Cover Page */
+    .cover-page {
+      page-break-after: always;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .cover-title {
+      font-size: 26pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+    .cover-subtitle {
+      font-size: 13pt;
+      font-weight: 600;
+      color: #2563eb;
+      max-width: 650px;
+      line-height: 1.4;
+      margin-bottom: 24px;
+    }
+    .cover-divider {
+      width: 120px;
+      height: 4px;
+      background: #2563eb;
+      border-radius: 2px;
+      margin-bottom: 40px;
+    }
+    .meta-box {
+      font-size: 11pt;
+      color: #475569;
+      margin-bottom: 50px;
+      line-height: 1.8;
+    }
+    .meta-box strong {
+      color: #0f172a;
+    }
+    .confidential-card {
+      background: #fffbeb;
+      border-left: 4px solid #d97706;
+      border-radius: 6px;
+      padding: 14px 20px;
+      max-width: 680px;
+      text-align: left;
+      font-size: 9.5pt;
+      color: #78350f;
+      line-height: 1.45;
+    }
+    .confidential-card strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 10pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Headings */
+    h1 {
+      font-size: 17pt;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-top: 26pt;
+      margin-bottom: 10pt;
+      border-bottom: 1.5px solid #e2e8f0;
+      padding-bottom: 4pt;
+      page-break-after: avoid;
+    }
+    h2 {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #2563eb;
+      margin-top: 18pt;
+      margin-bottom: 8pt;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 14pt;
+      margin-bottom: 6pt;
+      page-break-after: avoid;
+    }
+    p {
+      margin-bottom: 8pt;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 10pt;
+    }
+    li {
+      margin-bottom: 4pt;
+    }
+    li strong {
+      color: #0f172a;
+    }
+
+    /* Callout & Alerts */
+    .callout {
+      background: #eff6ff;
+      border-left: 4px solid #2563eb;
+      border-radius: 4px;
+      padding: 10pt 14pt;
+      margin: 12pt 0;
+      font-size: 9.5pt;
+      page-break-inside: avoid;
+    }
+    .callout.warn {
+      background: #fffbeb;
+      border-left-color: #d97706;
+      color: #78350f;
+    }
+    .callout-title {
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-bottom: 3pt;
+      font-size: 10pt;
+    }
+    .callout.warn .callout-title {
+      color: #92400e;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12pt 0;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 6pt 8pt;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #1e3a8a;
+      color: #ffffff;
+      font-weight: 600;
+    }
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    /* Code Blocks */
+    pre, code-block {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 8pt 10pt;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 8.5pt;
+      line-height: 1.4;
+      color: #0f172a;
+      margin: 10pt 0;
+      overflow-x: auto;
+      page-break-inside: avoid;
+      white-space: pre-wrap;
+    }
+    code {
+      font-family: Consolas, monospace;
+      font-size: 9pt;
+      background: #f1f5f9;
+      padding: 1pt 3pt;
+      border-radius: 3pt;
+    }
+
+    /* Diagrams */
+    .diagram-container {
+      text-align: center;
+      margin: 16pt 0;
+      page-break-inside: avoid;
+    }
+    .diagram-img {
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+    }
+    .diagram-caption {
+      font-size: 8.5pt;
+      font-style: italic;
+      color: #64748b;
+      margin-top: 6pt;
+    }
+
+    .page-break {
+      page-break-after: always;
+    }
+    .toc-item {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dotted #cbd5e1;
+      padding: 4pt 0;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- COVER PAGE -->
+  <div class="cover-page">
+    <div class="cover-title">Behavioral Fingerprinting SDK</div>
+    <div class="cover-subtitle">Technical Overview, SDK Integration and Enterprise Banking Deployment Guide</div>
+    <div class="cover-divider"></div>
+
+    <div class="meta-box">
+      <div>Prepared for: <strong>Banking Client Technical Architecture & Security Review Team</strong></div>
+      <div>SDK Specification Version: <strong>v2.1.0 (Enterprise GA)</strong></div>
+      <div>Document Release Date: <strong>October 2026</strong></div>
+      <div>Document Reference: <code>XYL-BF-ARCH-2026-V2.1</code></div>
+    </div>
+
+    <div class="confidential-card">
+      <strong>Commercial Confidentiality Notice</strong>
+      This document contains proprietary technical architecture, API specifications, and behavioral security integration guidelines prepared exclusively for authorized technical evaluation by the Banking Client. Unauthorized reproduction, transmission, distribution, or public disclosure without prior written consent is strictly prohibited.
+    </div>
+  </div>
+
+  <!-- TABLE OF CONTENTS -->
+  <div class="page-break">
+    <h1>Table of Contents</h1>
+    <div style="margin: 20px 0;">
+      <div class="toc-item"><span>1. Executive Summary</span><span>3</span></div>
+      <div class="toc-item"><span>2. System Overview and Architecture</span><span>4</span></div>
+      <div class="toc-item"><span>3. How the Application Works</span><span>6</span></div>
+      <div class="toc-item"><span>4. Data Collection and Privacy</span><span>8</span></div>
+      <div class="toc-item"><span>5. Complete Event Catalogue</span><span>10</span></div>
+      <div class="toc-item"><span>6. SDK Integration Guide for the Client</span><span>13</span></div>
+      <div class="toc-item"><span>7. API Documentation</span><span>16</span></div>
+      <div class="toc-item"><span>8. Database Design and Configuration</span><span>19</span></div>
+      <div class="toc-item"><span>9. Installation and Local Setup</span><span>22</span></div>
+      <div class="toc-item"><span>10. Environment Configuration</span><span>24</span></div>
+      <div class="toc-item"><span>11. Client-Side Integration Requirements</span><span>26</span></div>
+      <div class="toc-item"><span>12. Testing and Acceptance Criteria</span><span>28</span></div>
+      <div class="toc-item"><span>13. Security, Compliance, and Limitations</span><span>30</span></div>
+      <div class="toc-item"><span>14. Troubleshooting</span><span>32</span></div>
+      <div class="toc-item"><span>15. Go-Live Checklist and Next Steps</span><span>34</span></div>
+    </div>
+  </div>
+
+  <!-- 1. EXECUTIVE SUMMARY -->
+  <h1>1. Executive Summary</h1>
+  <p>The Behavioral Fingerprinting Platform is a bank-grade client security telemetry and biometrics intelligence solution designed to safeguard customer sessions against automated attacks, synthetic bot interaction, credential stuffing, and unauthorized account takeovers (ATO). By unobtrusively capturing continuous user interaction dynamics—such as micro-pointer trajectories, typing flight/hold cadences, touch pressures, scroll kinematics, and device contexts—the platform constructs an explainable, continuous behavioral profile without introducing frictional CAPTCHAs or interrupting legitimate digital banking journeys.</p>
+
+  <h2>1.1 Why a Bank Uses Behavioral Biometrics</h2>
+  <p>Traditional banking perimeter defenses (e.g., passwords, SMS OTPs, and device cookies) operate deterministically at discrete authentication gates. However, modern adversary toolkits routinely circumvent these static controls via credential stuffing, phishing proxies (Evilginx), SIM-swapping, and session-token hijacking. The Behavioral Fingerprinting Platform addresses these challenges by introducing continuous, post-login behavioral verification:</p>
+  <ul>
+    <li><strong>Automated Threat Neutralization:</strong> Detects automated headless browsers (Puppeteer, Selenium, Playwright) and scripted injection attacks through millisecond-level motor rhythm analysis and cursor trajectory curvature evaluation.</li>
+    <li><strong>Account Takeover (ATO) Prevention:</strong> Identifies when a compromised session is taken over by an unauthorized third party whose typing cadence, mouse dynamics, and navigational rhythm deviate sharply from the established customer profile.</li>
+    <li><strong>Fraudulent Payment & Transfer Defense:</strong> Flags high-value wire transfers, beneficiary updates, and checkout completions that execute instantly without preceding cursor movement, tactile touches, or visual focus events.</li>
+    <li><strong>Frictionless Customer Experience:</strong> Operates entirely in the background without requiring user prompts, biometric hardware scanners, or intrusive challenge screens.</li>
+  </ul>
+
+  <h2>1.2 Platform Component Roles</h2>
+  <p>The verified application is structured into four core architectural tiers:</p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Tier / Component</th>
+        <th style="width: 30%;">Physical Source Location</th>
+        <th style="width: 45%;">Primary Enterprise Responsibility</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Client-Side SDK</td>
+        <td><code>behavioral_tracker_sdk/analytics-tracker.js</code> & <code>sdk/xylium-core.js</code></td>
+        <td>Captures passive interaction dynamics, enforces strict client-side PII stripping, normalizes telemetry, and manages buffered, resilient HTTPS transmission.</td>
+      </tr>
+      <tr>
+        <td>Ingestion API Gateway</td>
+        <td><code>src/app.js</code> & <code>src/routes/collect.js</code> & <code>src/routes/analytics.js</code></td>
+        <td>Enforces tenant authorization (tenantGuard), API rate limiting, trusted-proxy extraction, JSON body validation via Zod, and beacon parsing.</td>
+      </tr>
+      <tr>
+        <td>Identity Stitching & Risk Engine</td>
+        <td><code>src/collectService.js</code> & <code>src/riskService.js</code></td>
+        <td>Performs server-to-server identity linking, backfills pre-login interaction telemetry, computes biometric features, and outputs explainable risk scores.</td>
+      </tr>
+      <tr>
+        <td>Dual Database Layer</td>
+        <td><code>src/database/adapters/</code> (PostgreSQL + MongoDB)</td>
+        <td>Provides an enterprise database-agnostic repository interface supporting both ACID relational storage (PostgreSQL) and JSON document collections (MongoDB) with zero-downtime hot-switching.</td>
+      </tr>
+      <tr>
+        <td>Operations & Visualizer Dashboards</td>
+        <td><code>behavioral_tracker_sdk/</code> (admin-database.html, user-inspector.html)</td>
+        <td>Permits authorized administrators to monitor adapter latency, execute live database switches, inspect single-user journeys, and review real-time biometric risk signals.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <div class="callout-title">CRITICAL PRINCIPLE: PROBABILISTIC NATURE OF BEHAVIORAL BIOMETRICS</div>
+    Behavioral biometrics produce probabilistic anomaly indicators, risk scores, and confidence intervals—they do not provide deterministic, legally conclusive proof of a user’s identity or fraud. Legitimate human variability (e.g., hand fatigue, mobile versus desktop usage, trackpad transitions, or assistive technologies) can influence interaction cadence. Consequently, high behavioral risk scores must trigger adaptive verification (such as step-up multi-factor authentication or manual fraud review) rather than automated, punitive account terminations.
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- 2. SYSTEM OVERVIEW AND ARCHITECTURE -->
+  <h1>2. System Overview and Architecture</h1>
+  <p>The Behavioral Fingerprinting architecture follows a decoupled, resilient ingestion pattern specifically tailored for banking web applications and single-page applications (SPAs). Telemetry flows strictly unidirectionally from the client browser to the backend ingestion layer, where it is validated, tenant-scoped, and persisted into the active database adapter.</p>
+
+  
+  <div class="diagram-container">
+    <img src="architecture_diagram.png" class="diagram-img" alt="System Architecture Diagram">
+    <div class="diagram-caption">Figure 2.1: End-to-End Behavioral Fingerprinting Platform Architecture & Ingestion Flow</div>
+  </div>
+
+  <h2>2.1 Verified Component Breakdown and Event Flow</h2>
+  <ul>
+    <li><strong>1. Bank Website / Application:</strong> The customer-facing banking portal (HTML/CSS/JS or React/Next.js SPA) hosting user sessions, authentication forms, account dashboards, and financial transfer flows.</li>
+    <li><strong>2. Embedded Behavioral SDK:</strong> The embedded script (analytics-tracker.js or modular xylium-core.js) executing passively in the browser runtime under strict isolation.</li>
+    <li><strong>3. SDK Config & Consent Gate:</strong> Initialization settings verifying tenantId, appId, batch thresholds, sampling rates, and privacy consent status before attaching global DOM listeners.</li>
+    <li><strong>4. Client Event Normalization:</strong> Normalizes raw DOM interactions into canonical schemas (event.schema.js), calculates local feature vectors (cadence, velocity), and scrubs all sensitive values.</li>
+    <li><strong>5. Resilient Network Transport:</strong> Transmits batches via HTTPS POST using keepalive fetch, falling back to navigator.sendBeacon during page unload and tab hidden states.</li>
+    <li><strong>6. Backend Gateway & Parser:</strong> Express server parsing application/json and text/plain beacon payloads, enforcing IP rate limits (3,000 req/min) and Zod schema validation.</li>
+    <li><strong>7. Tenant Authorization Guard:</strong> tenantGuard validates the tenantId against the configured ALLOWED_TENANTS allowlist. Server-to-server endpoints enforce apiKeyGuard with timing-safe comparisons.</li>
+    <li><strong>8. Dual Persistence Layer:</strong> DatabaseRegistry delegates event persistence to the currently active adapter (PostgreSQLAdapter or MongoDBAdapter), preserving tenant isolation.</li>
+    <li><strong>9. Behavioral Risk Scoring Engine:</strong> Consumes stored telemetry to extract trajectory straightness, superhuman typing speeds, and baseline deviations, yielding 0–100 risk evaluations.</li>
+    <li><strong>10. Operations & Admin Dashboards:</strong> Web interfaces (admin-database.html, user-inspector.html) allowing operations teams to manage database health, switch storage engines, and inspect user risk profiles.</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- 3. HOW THE APPLICATION WORKS -->
+  <h1>3. How the Application Works</h1>
+  <p>The operational lifecycle spans client-side instrumentation, asynchronous transmission, server-side identity resolution, and behavioral risk evaluation. Below is the precise 10-step lifecycle followed by a realistic banking scenario.</p>
+
+  <h2>3.1 The 10-Step Operational Lifecycle</h2>
+  <ol>
+    <li><strong>Client Embedding:</strong> The bank embeds the verified SDK script (analytics-tracker.js or modular xylium-core.js) on authorized login, dashboard, and payment pages.</li>
+    <li><strong>Initialization & Identity Setup:</strong> The SDK initializes with the bank’s tenantId, appId, collector endpoint URL, batchSize, and flush intervals.</li>
+    <li><strong>Anonymous Pseudonymization:</strong> The SDK generates an anonymous sessionId (sessionStorage) and anonymousId (localStorage). A cryptographic device fingerprint is derived from hardware properties.</li>
+    <li><strong>Consent Verification:</strong> If requireConsent is active, the SDK suppresses capture until window.XyliumBF.grantConsent() is invoked. Upon consent, initial device and time context snapshots are generated.</li>
+    <li><strong>Event Capture & Normalization:</strong> Passive listeners capture pointer movements, keypress flight times, scroll milestones, and form focus events. Raw typed values are immediately masked to generic tokens.</li>
+    <li><strong>Buffered Dispatch:</strong> Events accumulate in an in-memory ring buffer (batchSize = 25). When the buffer fills or the flush timer expires (5,000ms), events are dispatched over HTTPS.</li>
+    <li><strong>Gateway Validation:</strong> The backend gateway parses incoming payloads, verifies tenant legitimacy, validates event properties with Zod, and resolves the client’s real IP address via trusted reverse-proxy headers.</li>
+    <li><strong>Authoritative Identity Stitching:</strong> When credentials are verified on the bank’s core authentication server, the bank’s backend calls POST /identify (or /sessions/link) server-to-server. The collector binds the canonical customer userId and backfills it onto pre-login events.</li>
+    <li><strong>Database Persistence:</strong> The EventService stores normalized event documents in the active database (PostgreSQL table events or MongoDB collection behaviour_events).</li>
+    <li><strong>Behavioral Risk Analysis:</strong> The bank queries GET /api/analytics/sessions/:sessionId/risk to retrieve explainable anomaly signals (e.g. superhuman cadence, linear cursor trajectory) to drive step-up authentication decisions.</li>
+  </ol>
+
+  <h2>3.2 Realistic Banking User Session Walkthrough</h2>
+  <p>Consider a customer named Alice accessing her online banking portal:</p>
+  <ul>
+    <li><strong>Phase 1: Anonymous Login Navigation:</strong> Alice arrives at <code>https://online.nexusbank.com/login</code>. The SDK initializes anonymously with <code>sessionId="sess_9b8a2f"</code> and <code>userId=null</code>. The SDK captures her screen resolution (1920x1080), browser locale, and battery level (84%, discharging).</li>
+    <li><strong>Phase 2: Typing Biometrics & Privacy Scrubbing:</strong> Alice types her username "alice_smith". The SDK records keydown and keyup events with <code>keyMasked="char"</code>, <code>holdTimeMs=85</code>, and <code>flightTimeMs=120</code>. Next, she clicks the password field. She types her 16-character password; the SDK captures 16 keypress events with <code>keyMasked="char"</code> and hold times. Zero password characters or strings are ever captured or stored in memory.</li>
+    <li><strong>Phase 3: Pointer Trajectory & Flush:</strong> Alice moves her cursor toward the "Sign In" button. The SDK records a curved trajectory across 42 sample points, an approach angle of 34 degrees, and a 380ms hover dwell time before clicking. A batch of 35 events flushes to <code>POST /collect</code>.</li>
+    <li><strong>Phase 4: Server-Side Identity Stitching:</strong> The bank’s core identity service validates Alice’s credentials. Upon successful authentication, the bank’s server issues a <code>POST /identify</code> request to the collector with <code>sessionId="sess_9b8a2f"</code> and verified <code>userId="cust_84920"</code>. The collector marks the session authenticated and updates all earlier pre-login events with cust_84920.</li>
+    <li><strong>Phase 5: Authenticated Banking & Low Risk Verdict:</strong> Alice navigates to <code>/transfers/international</code> and initiates a $5,000 wire transfer. The SDK fires <code>account_page_view</code> and <code>payment_flow_start</code>. The risk engine evaluates her session: motor jitter is natural, typing cadence is 4.2 keys/sec (consistent with human baseline), and trajectory curvature is organic. The resulting risk score is 12/100 (LOW, ALLOW).</li>
+    <li><strong>Phase 6: Automated Attack Mitigation:</strong> Contrast scenario: If an automated script had injected Alice’s credentials, submitted the login form in 18ms with 0 pointer movements, and triggered an immediate wire transfer, the risk engine flags <code>SYNTHETIC_POINTER_TRAJECTORY</code> and <code>AUTOMATED_FORM_INJECTION</code>, yielding a risk score of 85/100 (CRITICAL, STEP_UP_AUTH). The bank prompts for hardware security key verification, successfully thwarting account takeover.</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- 4. DATA COLLECTION AND PRIVACY -->
+  <h1>4. Data Collection and Privacy</h1>
+  <p>Data minimization and privacy-by-design are fundamental pillars of the platform. The SDK captures <em>how</em> a user interacts with a page, rather than <em>what</em> data the user enters. The table below outlines every data category, verified against the actual schema and SDK code.</p>
+
+  <h2>4.1 Verified Data Collection Matrix</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 18%;">Data Category</th>
+        <th style="width: 22%;">Example Data Fields in Code</th>
+        <th style="width: 24%;">Biometric / Operational Purpose</th>
+        <th style="width: 18%;">Collection Mechanism</th>
+        <th style="width: 8%;">Req/Opt</th>
+        <th style="width: 10%;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Session Identity</td>
+        <td><code>sessionId, anonymousId, tenantId, clientId, userId</code></td>
+        <td>Binds interaction sequences to session lifecycles and customer profiles.</td>
+        <td>sessionStorage / localStorage UUID generation.</td>
+        <td>Req</td>
+        <td>Fully Implemented</td>
+      </tr>
+      <tr>
+        <td>Pointer Dynamics</td>
+        <td><code>pointerX, pointerY, speedPxPerMs, angleDeg, isStraightLine, hoverDurationMs</code></td>
+        <td>Evaluates human motor tremor, trajectory curvature, bot straightness, and dwell.</td>
+        <td>Throttled pointermove (50ms), pointerdown, mouseover listeners.</td>
+        <td>Req</td>
+        <td>Fully Implemented</td>
+      </tr>
+      <tr>
+        <td>Keyboard Dynamics</td>
+        <td><code>keyMasked, flightTimeMs, holdTimeMs, keysPerSecond, isTypingPause</code></td>
+        <td>Captures keystroke rhythms, inter-key flight times, and typing cadences.</td>
+        <td>keydown, keyup event listeners with performance.now() deltas.</td>
+        <td>Req</td>
+        <td>Fully Implemented</td>
+      </tr>
+      <tr>
+        <td>Form Interactions</td>
+        <td><code>fieldId, fieldCategory, fromField, toField, durationMs, pasteDetected</code></td>
+        <td>Tracks focus order, dwell time per field, and non-typed paste injections.</td>
+        <td>focusin, focusout, paste, and CSS animation autofill watcher.</td>
+        <td>Req</td>
+        <td>Fully Implemented</td>
+      </tr>
+      <tr>
+        <td>Scroll Kinematics</td>
+        <td><code>scrollY, scrollDirection, scrollDeltaPx, scrollDepthPercent, scrollMilestone</code></td>
+        <td>Measures reading speeds, navigational acceleration, and page consumption.</td>
+        <td>Throttled window scroll listener (100ms) with depth calculation.</td>
+        <td>Opt</td>
+        <td>Fully Implemented</td>
+      </tr>
+      <tr>
+        <td>Touch & Mobile</td>
+        <td><code>touchCount, durationMs, gestureType, swipeDirection, swipeDistancePx, orientation</code></td>
+        <td>Captures touch contact duration, swipe velocity, and device screen rotation.</td>
+        <td>touchstart, touchmove, touchend, and orientationchange listeners.</td>
+        <td>Opt</td>
+        <td>Fully Implemented</td>
+      </tr>
+      <tr>
+        <td>Lifecycle & Nav</td>
+        <td><code>fromRoute, toRoute, navigationMethod, visibilityState, idleDurationMs, pageLoadTimeMs</code></td>
+        <td>Monitors SPA view switches, tab backgrounding, idle intervals, and load latency.</td>
+        <td>visibilitychange, pagehide, popstate, performance.timing APIs.</td>
+        <td>Req</td>
+        <td>Fully Implemented</td>
+      </tr>
+      <tr>
+        <td>Banking Workflow</td>
+        <td><code>flowType, paymentId, paymentAmount, paymentCurrency, recipientType, challengeType</code></td>
+        <td>Correlates behavioral anomalies with high-risk financial workflow steps.</td>
+        <td>Explicit SDK calls (trackPaymentFlowStart, trackPaymentConfirmation).</td>
+        <td>Opt</td>
+        <td>Fully Implemented</td>
+      </tr>
+      <tr>
+        <td>Device Metadata</td>
+        <td><code>deviceCategory, deviceOs, screenWidth, screenHeight, batteryLevel, isCharging</code></td>
+        <td>Establishes device baselines and flags virtualization or battery spoofing.</td>
+        <td>navigator.userAgent, window.screen, navigator.getBattery() API.</td>
+        <td>Opt</td>
+        <td>Fully Implemented</td>
+      </tr>
+      <tr>
+        <td>Network Risk</td>
+        <td><code>isVpn, isProxy, isDatacenter, geoIsNewCountry, clientIp</code></td>
+        <td>Identifies commercial VPNs, proxies, and TOR exit nodes server-side.</td>
+        <td>Backend IP intelligence provider lookup (IPQS/IPAPI) on client IP.</td>
+        <td>Opt</td>
+        <td>Partially (Route unmounted)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>4.2 Sensitive Data Exclusions and Privacy Guarantees</h2>
+  <ul>
+    <li><strong>Zero Keystroke Content Capture:</strong> The <code>maskKey()</code> function inspects every keypress. If <code>e.key</code> is a printable character (length 1), it returns <code>"char"</code>. If it is a navigation key (Backspace, Enter, Tab), it returns the key name. The actual character typed is never captured, buffered, or transmitted.</li>
+    <li><strong>Credential and PIN Shielding:</strong> Verified regex <code>SENSITIVE_INPUT_REGEX</code> (/password|passwd|secret|cvv|cvc|card|credit|token|otp|pin|ssn|auth|account_?no/i) checks input element attributes (type, id, name). Any matching field has its fieldId redacted to <code>"redacted_sensitive_field"</code>, and properties are scrubbed.</li>
+    <li><strong>Clipboard Content Exclusion:</strong> The paste event listener measures <code>pastedText.length</code> and detects whitespace/non-printable flags, but completely discards <code>pastedText</code>. No clipboard strings ever leave the browser.</li>
+    <li><strong>Encryption and Right-to-be-Forgotten:</strong> All events are transmitted over HTTPS/TLS, validated against Zod strict schemas, and stored with tenant scoping. Data can be permanently purged using the implemented <code>DELETE /api/analytics/users/:userId</code> endpoint.</li>
+  </ul>
+
+  <div class="callout warn">
+    <div class="callout-title">BANKING DEPLOYMENT PRE-REQUISITE: CUSTOM INPUT FIELD NAMING CONVENTIONS</div>
+    While the SDK’s regex comprehensively filters standard HTML forms (type="password", name="cvv", etc.), banking clients utilizing proprietary custom Web Components must ensure that custom input elements either specify standard input types or include the attribute <code>data-bf-field="password"</code> or <code>data-bf-field="sensitive"</code>. This ensures complete privacy shielding regardless of custom styling frameworks.
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- 5. COMPLETE EVENT CATALOGUE -->
+  <h1>5. Complete Event Catalogue</h1>
+  <p>The inventory below catalogues all events supported across analytics-tracker.js, xylium-bf-v2.js, and the modular sdk/ pattern modules.</p>
+
+  <h2>5.1 Verified Event Inventory</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 18%;">Event Name</th>
+        <th style="width: 10%;">Category</th>
+        <th style="width: 22%;">Trigger Condition</th>
+        <th style="width: 28%;">Captured Fields & Metrics</th>
+        <th style="width: 14%;">Code Location</th>
+        <th style="width: 8%;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>pointer_move / mousemove</code></td>
+        <td>pointer</td>
+        <td>Mouse or stylus moves across DOM viewport.</td>
+        <td>pointerX, pointerY, sampledIntervalMs</td>
+        <td>analytics-tracker.js:423, xylium-mouse.js</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>pointer_velocity</code></td>
+        <td>pointer</td>
+        <td>Derived locally from consecutive cursor coordinates.</td>
+        <td>speedPxPerMs, angleDeg, isStraightLine, distancePx</td>
+        <td>analytics-tracker.js:436</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>pointer_down / pointer_up</code></td>
+        <td>pointer</td>
+        <td>Primary pointer button pressed or released.</td>
+        <td>pointerX, pointerY, holdDurationMs, targetCategory, targetId</td>
+        <td>analytics-tracker.js:348, xylium-mouse.js</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>pointer_click / click</code></td>
+        <td>pointer</td>
+        <td>Mouse click or pointer tap completed.</td>
+        <td>pointerX, pointerY, targetCategory, targetId, textPreview</td>
+        <td>analytics-tracker.js:372, xylium-mouse.js</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>hover / hover_before_click</code></td>
+        <td>pointer</td>
+        <td>Cursor dwells over CTA or button before click.</td>
+        <td>targetId, targetCategory, hoverDurationMs, isZeroHover</td>
+        <td>analytics-tracker.js:460, xylium-bf-v2.js:327</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>mouse_trajectory</code></td>
+        <td>pointer</td>
+        <td>Continuous drag or movement between down and up.</td>
+        <td>straightnessIndex, actualPathPx, straightLinePx, maxDeviationPx</td>
+        <td>xylium-bf-v2.js:243, xylium-mouse.js</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>overshoot</code></td>
+        <td>pointer</td>
+        <td>Pointer travels past clickable target before correction.</td>
+        <td>didOvershoot, overshootPx, correctionMs, approachAngleDeg</td>
+        <td>xylium-bf-v2.js:299, xylium-mouse.js</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>mouse_entropy</code></td>
+        <td>pointer</td>
+        <td>50-sample cursor window angle variation analysis.</td>
+        <td>entropy, avgAngleChangeDeg, stdAngleChangeDeg</td>
+        <td>xylium-bf-v2.js:410, xylium-mouse.js</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>key_down / keydown</code></td>
+        <td>keyboard</td>
+        <td>Key pressed down on keyboard.</td>
+        <td>keyMasked ("char"/control), fieldCategory, flightTimeMs</td>
+        <td>analytics-tracker.js:498, xylium-keyboard.js</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>key_up / keyup</code></td>
+        <td>keyboard</td>
+        <td>Key released on keyboard.</td>
+        <td>keyMasked, fieldCategory</td>
+        <td>analytics-tracker.js:521, xylium-keyboard.js</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>typing_dynamics / keytiming</code></td>
+        <td>keyboard</td>
+        <td>Flight time between successive keystrokes.</td>
+        <td>flightTimeMs, holdTimeMs, keysPerSecond, isTypingPause</td>
+        <td>analytics-tracker.js:506, xylium-bf-v2.js:450</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>correction_key</code></td>
+        <td>keyboard</td>
+        <td>Backspace or Delete pressed during input.</td>
+        <td>key, holdTimeMs, isHeld, gapFromLastMs, burstIndex</td>
+        <td>xylium-bf-v2.js:473, xylium-keyboard.js</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>field_focused / focus_change</code></td>
+        <td>form</td>
+        <td>User focuses an input field or switches fields.</td>
+        <td>fieldId, fieldCategory, fromField, toField</td>
+        <td>analytics-tracker.js:541, xylium-form.js</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>field_interaction / field_time_spent</code></td>
+        <td>form</td>
+        <td>User blurs field after active editing.</td>
+        <td>fieldId, fieldCategory, durationMs, focusCount</td>
+        <td>analytics-tracker.js:562, xylium-bf-v2.js:632</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>paste_detected / paste</code></td>
+        <td>form</td>
+        <td>Paste shortcut or context menu paste triggered.</td>
+        <td>pasteDetected, fieldId, isPasswordField, pastedLength</td>
+        <td>analytics-tracker.js:583, xylium-bf-v2.js:787</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>autofill / autofill_summary</code></td>
+        <td>form</td>
+        <td>Browser autofill triggered on login inputs.</td>
+        <td>field, fillTimeMs, username_autofilled, password_autofilled</td>
+        <td>xylium-bf-v2.js:974, xylium-form.js</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>scroll / scroll_milestone</code></td>
+        <td>scroll</td>
+        <td>Page scrolled to 25%, 50%, 75%, or 100% depth.</td>
+        <td>scrollY, scrollDirection, scrollDeltaPx, scrollMilestone</td>
+        <td>analytics-tracker.js:676, xylium-scroll.js</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>touch_start / touch_end / swipe</code></td>
+        <td>touch</td>
+        <td>Touch gesture contact and swipe trajectory.</td>
+        <td>touchCount, durationMs, gestureType, swipeDirection, swipeDistancePx</td>
+        <td>analytics-tracker.js:608, xylium-touch.js</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>session_start / session_end</code></td>
+        <td>lifecycle</td>
+        <td>Session initiated or terminated via pagehide.</td>
+        <td>sessionId, userAgent, referrer, reason</td>
+        <td>analytics-tracker.js:870, analytics-tracker.js:336</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>page_navigation / page_entered</code></td>
+        <td>navigation</td>
+        <td>SPA route transition executed.</td>
+        <td>fromRoute, toRoute, navigationMethod, pageViewId</td>
+        <td>analytics-tracker.js:910, analytics-tracker.js:923</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>login_attempt / login_success</code></td>
+        <td>auth</td>
+        <td>Authentication workflow outcomes.</td>
+        <td>userId, method, reasonCode, route</td>
+        <td>analytics-tracker.js:956, analytics-tracker.js:972</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>account_page_view</code></td>
+        <td>banking</td>
+        <td>Customer visits balance, transactions, or statements.</td>
+        <td>accountCategory, viewType, route</td>
+        <td>analytics-tracker.js:1007</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>payment_flow_start / confirmation</code></td>
+        <td>banking</td>
+        <td>Payment workflow initiated or completed.</td>
+        <td>flowType, paymentId, paymentAmount, paymentCurrency, paymentStatus</td>
+        <td>analytics-tracker.js:1015, analytics-tracker.js:1024</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>transaction_failure</code></td>
+        <td>banking</td>
+        <td>Financial transfer rejected or failed.</td>
+        <td>reasonCode, flowType, route</td>
+        <td>analytics-tracker.js:1034</td>
+        <td>Verified</td>
+      </tr>
+      <tr>
+        <td><code>step_up_auth_required</code></td>
+        <td>banking</td>
+        <td>2FA challenge triggered by policy or risk score.</td>
+        <td>challengeType, trigger, route</td>
+        <td>analytics-tracker.js:1049</td>
+        <td>Verified</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>5.2 Sanitized Real Event Payload Example</h2>
+  <pre>{
+  "events": [
+    {
+      "eventId": "evt_7f8a9b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c",
+      "sessionId": "sess_89a0b1c2-d3e4-5f6a-7b8c-9d0e1f2a3b4c",
+      "tenantId": "nexus_bank",
+      "clientId": "client_nexus_portal",
+      "userId": "cust_84920",
+      "eventName": "pointer_velocity",
+      "eventCategory": "pointer",
+      "timestamp": "2026-10-21T06:15:30.142Z",
+      "sequenceNumber": 142,
+      "page": "/transfers/international",
+      "sanitizedRoute": "/transfers/international",
+      "pointerX": 482,
+      "pointerY": 614,
+      "pointerSpeedPxPerMs": 1.28,
+      "pointerAngleDeg": 42,
+      "pointerDistancePx": 64,
+      "isStraightLine": false,
+      "deviceCategory": "desktop",
+      "deviceOs": "windows",
+      "deviceBrowser": "chrome",
+      "screenWidth": 1920,
+      "screenHeight": 1080,
+      "sdkVersion": "2.1.0",
+      "schemaVersion": "2.0"
+    },
+    {
+      "eventId": "evt_1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+      "sessionId": "sess_89a0b1c2-d3e4-5f6a-7b8c-9d0e1f2a3b4c",
+      "tenantId": "nexus_bank",
+      "clientId": "client_nexus_portal",
+      "userId": "cust_84920",
+      "eventName": "payment_flow_start",
+      "eventCategory": "banking",
+      "timestamp": "2026-10-21T06:15:32.890Z",
+      "sequenceNumber": 143,
+      "page": "/transfers/international",
+      "sanitizedRoute": "/transfers/international",
+      "flowType": "wire_transfer",
+      "paymentAmount": 5000.00,
+      "paymentCurrency": "USD",
+      "recipientType": "international",
+      "sdkVersion": "2.1.0",
+      "schemaVersion": "2.0"
+    }
+  ]
+}</pre>
+
+  <div class="page-break"></div>
+
+  <!-- 6. SDK INTEGRATION GUIDE FOR THE CLIENT -->
+  <h1>6. SDK Integration Guide for the Client</h1>
+  <p>The bank can integrate the SDK using either the unified enterprise build (analytics-tracker.js) or the modular drop-in script (xylium-core.js). Both execute across modern Chromium, Safari, and Firefox browsers.</p>
+
+  <h2>6.1 Integration Option A: Unified Enterprise SDK (analytics-tracker.js)</h2>
+  <p>Recommended for modern banking web portals and Single Page Applications (SPAs). This version bundles the full 16-category biometrics suite, JWT authentication handling, automatic flush management, and banking lifecycle methods.</p>
+
+  <h3>HTML / Multi-Page Application (MPA)</h3>
+  <pre>&lt;!-- 1. Include the SDK script --&gt;
+&lt;script src="https://cdn.nexusbank.com/sdk/analytics-tracker.js"&gt;&lt;/script&gt;
+
+&lt;!-- 2. Initialize the SDK singleton --&gt;
+&lt;script&gt;
+  const tracker = BehaviorSDK.init({
+    apiEndpoint: "https://collector.nexusbank.com/api/analytics",
+    tenantId: "nexus_bank",
+    clientId: "portal_web",
+    batchSize: 25,
+    flushIntervalMs: 5000,
+    idleThresholdMs: 5000,
+    consent: true, // Set to false if awaiting explicit banner consent
+  });
+
+  // Wire up post-login identity linking
+  function onUserLoginSuccess(userId, jwtToken) {
+    tracker.loginSuccess(userId, jwtToken);
+  }
+
+  // Wire up banking workflow tracking
+  function onTransferInitiated(amount, currency) {
+    tracker.trackPaymentFlowStart("wire_transfer", currency, "domestic");
+  }
+&lt;/script&gt;</pre>
+
+  <h3>React / Next.js Hook Integration</h3>
+  <pre>import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
+
+export function useBehavioralTracker({ tenantId, apiEndpoint, userId }) {
+  const trackerRef = useRef(null);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.BehaviorSDK) {
+      trackerRef.current = window.BehaviorSDK.init({
+        apiEndpoint: apiEndpoint || "https://collector.nexusbank.com/api/analytics",
+        tenantId: tenantId || "nexus_bank",
+        clientId: "portal_nextjs",
+        consent: true,
+      });
+    }
+    return () => {
+      if (trackerRef.current) trackerRef.current.stop();
+    };
+  }, [tenantId, apiEndpoint]);
+
+  useEffect(() => {
+    if (trackerRef.current && pathname) {
+      trackerRef.current.trackPageView(pathname);
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    if (trackerRef.current && userId) {
+      trackerRef.current.identify(userId);
+    }
+  }, [userId]);
+
+  return trackerRef.current;
+}</pre>
+
+  <h2>6.2 Integration Option B: Modular SDK (sdk/xylium-core.js)</h2>
+  <pre>&lt;!-- Landing Core File: Reads config, manages session, exposes window.XyliumBF --&gt;
+&lt;script src="https://cdn.nexusbank.com/sdk/xylium-core.js"
+        data-tenant-id="nexus_bank"
+        data-app-id="banking_portal"
+        data-api-endpoint="https://collector.nexusbank.com"
+        data-capture-geo="false"&gt;&lt;/script&gt;
+
+&lt;!-- Selective behavioral pattern modules (load order does not matter) --&gt;
+&lt;script src="https://cdn.nexusbank.com/sdk/xylium-mouse.js"&gt;&lt;/script&gt;
+&lt;script src="https://cdn.nexusbank.com/sdk/xylium-keyboard.js"&gt;&lt;/script&gt;
+&lt;script src="https://cdn.nexusbank.com/sdk/xylium-form.js"&gt;&lt;/script&gt;
+&lt;script src="https://cdn.nexusbank.com/sdk/xylium-navigation.js"&gt;&lt;/script&gt;
+&lt;script src="https://cdn.nexusbank.com/sdk/xylium-device.js"&gt;&lt;/script&gt;
+&lt;script src="https://cdn.nexusbank.com/sdk/xylium-identity.js"&gt;&lt;/script&gt;
+
+&lt;script&gt;
+  window.addEventListener("load", () => {
+    if (window.XyliumBF) {
+      window.XyliumBF.grantConsent();
+    }
+  });
+&lt;/script&gt;</pre>
+
+  <h2>6.3 Configuration Parameters Reference</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 22%;">Parameter Name</th>
+        <th style="width: 12%;">Type</th>
+        <th style="width: 22%;">Default Value</th>
+        <th style="width: 44%;">Description & Banking Guidance</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>apiEndpoint</code></td>
+        <td>String</td>
+        <td><code>http://localhost:8080/api/analytics</code></td>
+        <td>Base HTTPS URL of the backend ingestion server.</td>
+      </tr>
+      <tr>
+        <td><code>tenantId</code></td>
+        <td>String</td>
+        <td><code>default</code></td>
+        <td>Tenant identifier. Must match an entry in the backend ALLOWED_TENANTS config.</td>
+      </tr>
+      <tr>
+        <td><code>clientId / appId</code></td>
+        <td>String</td>
+        <td><code>banking_app</code></td>
+        <td>Client application identifier distinguishing web portals from mobile web.</td>
+      </tr>
+      <tr>
+        <td><code>batchSize</code></td>
+        <td>Number</td>
+        <td><code>25</code></td>
+        <td>Number of events buffered before flushing an HTTPS batch (max: 100).</td>
+      </tr>
+      <tr>
+        <td><code>flushIntervalMs</code></td>
+        <td>Number</td>
+        <td><code>5000</code></td>
+        <td>Periodic interval in milliseconds for flushing pending events (recommended: 3000–5000).</td>
+      </tr>
+      <tr>
+        <td><code>maxQueueSize</code></td>
+        <td>Number</td>
+        <td><code>500</code></td>
+        <td>Maximum in-memory ring buffer size. Discards oldest events if backend is unreachable.</td>
+      </tr>
+      <tr>
+        <td><code>maxRetries</code></td>
+        <td>Number</td>
+        <td><code>4</code></td>
+        <td>Maximum retry attempts with exponential jitter before discarding a failed batch.</td>
+      </tr>
+      <tr>
+        <td><code>idleThresholdMs</code></td>
+        <td>Number</td>
+        <td><code>5000</code></td>
+        <td>Inactivity duration in milliseconds before firing idle_start.</td>
+      </tr>
+      <tr>
+        <td><code>consent</code></td>
+        <td>Boolean</td>
+        <td><code>true</code></td>
+        <td>If false, SDK suppresses all collection until grantConsent() is invoked.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- 7. API DOCUMENTATION -->
+  <h1>7. API Documentation</h1>
+  <p>This section documents all active HTTP endpoints exposed by the backend service. Endpoints are organized by responsibility: Ingestion, Identity Resolution, Analytics & Risk, and Database Administration.</p>
+
+  <h2>7.1 Public SDK Ingestion Endpoints</h2>
+  <h3>POST /collect (Legacy / Modular Ingestion)</h3>
+  <ul>
+    <li><strong>Path:</strong> <code>POST /collect</code></li>
+    <li><strong>Auth:</strong> None (Protected by <code>tenantId</code> validation against <code>ALLOWED_TENANTS</code>)</li>
+    <li><strong>Headers:</strong> <code>Content-Type: application/json</code> (or <code>text/plain</code> for sendBeacon)</li>
+    <li><strong>Request Body:</strong> <code>{ "tenantId": "nexus_bank", "appId": "portal", "deviceFingerprint": "fp_8471", "events": [...] }</code></li>
+    <li><strong>Response 202 Accepted:</strong> <code>{ "ok": true }</code></li>
+    <li><strong>Response 403 Forbidden:</strong> <code>{ "error": "unknown tenant" }</code></li>
+  </ul>
+
+  <h3>POST /api/analytics/events/batch (Modern Ingestion)</h3>
+  <ul>
+    <li><strong>Path:</strong> <code>POST /api/analytics/events/batch</code></li>
+    <li><strong>Auth:</strong> <code>optionalAuth</code> (derives canonical userId if authenticated)</li>
+    <li><strong>Headers:</strong> <code>Content-Type: application/json</code>, <code>Authorization: Bearer &lt;JWT&gt;</code> (optional)</li>
+    <li><strong>Request Body:</strong> <code>{ "events": [ { "eventId": "evt_...", "sessionId": "...", "eventName": "...", ... } ] }</code></li>
+    <li><strong>Response 202 Accepted:</strong> <code>{ "ok": true, "acceptedCount": 25, "insertedCount": 25, "activeDatabase": "postgresql" }</code></li>
+    <li><strong>Response 400 Bad Request:</strong> <code>{ "error": "invalid payload", "details": { ... } }</code></li>
+  </ul>
+
+  <h2>7.2 Authoritative Server-to-Server Identity Endpoints</h2>
+  <h3>POST /identify</h3>
+  <p>Called strictly by the bank’s core authentication backend after verifying customer credentials. Links anonymous sessionId to verified customer userId.</p>
+  <ul>
+    <li><strong>Headers:</strong> <code>Content-Type: application/json</code>, <code>x-tenant-id: nexus_bank</code>, <code>x-api-key: &lt;SECRET_KEY&gt;</code></li>
+    <li><strong>Auth:</strong> <code>apiKeyGuard</code> (enforces timing-safe crypto comparison against <code>TENANT_API_KEYS</code>)</li>
+    <li><strong>Request Body:</strong> <code>{ "sessionId": "sess_89a0b1c2", "userId": "cust_84920" }</code></li>
+    <li><strong>Response 200 OK:</strong> <code>{ "ok": true }</code></li>
+    <li><strong>Response 401 Unauthorized:</strong> <code>{ "error": "unauthorized" }</code></li>
+  </ul>
+
+  <h2>7.3 Analytics & Behavioral Risk Endpoints</h2>
+  <h3>GET /api/analytics/sessions/:sessionId/risk</h3>
+  <p>Evaluates session biometrics against human physiological thresholds and returns explainable risk signals.</p>
+  <ul>
+    <li><strong>Headers:</strong> <code>Authorization: Bearer &lt;JWT&gt;</code> or <code>x-api-key</code></li>
+    <li><strong>Auth:</strong> <code>requireAuth</code></li>
+    <li><strong>Response 200 OK:</strong></li>
+  </ul>
+  <pre>{
+  "sessionId": "sess_89a0b1c2",
+  "userId": "cust_84920",
+  "riskScore": 15,
+  "riskLevel": "LOW",
+  "confidence": 0.90,
+  "recommendedAction": "ALLOW",
+  "signals": [
+    {
+      "code": "DEVIATION_FROM_HISTORICAL_BASELINE",
+      "severity": "INFO",
+      "description": "Interaction patterns consistent with established baseline"
+    }
+  ],
+  "featuresSummary": {
+    "eventCount": 42,
+    "meanPointerSpeed": 1.42,
+    "meanFlightTime": 118,
+    "meanCadence": 4.1
+  }
+}</pre>
+
+  <h3>GET /api/analytics/users/:userId/summary</h3>
+  <ul>
+    <li><strong>Headers:</strong> <code>Authorization: Bearer &lt;JWT&gt;</code></li>
+    <li><strong>Auth:</strong> <code>requireUserOrAdmin</code></li>
+    <li><strong>Response 200 OK:</strong> <code>{ "userId": "cust_84920", "totalEvents": 412, "totalSessions": 8, "categories": { ... } }</code></li>
+  </ul>
+
+  <h3>DELETE /api/analytics/users/:userId (GDPR Erasure)</h3>
+  <ul>
+    <li><strong>Headers:</strong> <code>Authorization: Bearer &lt;JWT&gt;</code> (Admin or Customer)</li>
+    <li><strong>Response 200 OK:</strong> <code>{ "ok": true, "deletedCount": 412, "userId": "cust_84920" }</code></li>
+  </ul>
+
+  <h2>7.4 Admin Database Management Endpoints</h2>
+  <h3>GET /api/admin/database/status</h3>
+  <ul>
+    <li><strong>Auth:</strong> <code>requireServerOrAdmin</code></li>
+    <li><strong>Response 200 OK:</strong> <code>{ "activeDatabase": "postgresql", "databases": { "postgresql": { "status": "healthy", "latencyMs": 2 }, "mongodb": { "status": "healthy", "latencyMs": 4 } } }</code></li>
+  </ul>
+
+  <h3>POST /api/admin/database/switch</h3>
+  <ul>
+    <li><strong>Auth:</strong> <code>requireServerOrAdmin</code></li>
+    <li><strong>Request Body:</strong> <code>{ "database": "postgresql" }</code></li>
+    <li><strong>Response 200 OK:</strong> <code>{ "ok": true, "previousDatabase": "mongodb", "activeDatabase": "postgresql", "status": "healthy" }</code></li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- 8. DATABASE DESIGN AND CONFIGURATION -->
+  <h1>8. Database Design and Configuration</h1>
+  <p>The platform features a dual-database architecture supporting PostgreSQL (for enterprise relational compliance, strict ACID transactions, and existing corporate relational footprints) and MongoDB (for agile JSON document querying and massive vertical ingest scalability).</p>
+
+  <h2>8.1 PostgreSQL Relational Design & DDL</h2>
+  <p>The PostgreSQL adapter (<code>src/database/adapters/postgresql.adapter.js</code>) initializes the schema automatically upon connection if the <code>events</code> table does not exist. The exact verified DDL is provided below:</p>
+  <pre>CREATE TABLE IF NOT EXISTS events (
+  event_id VARCHAR(255) NOT NULL,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT 'default',
+  client_id VARCHAR(255),
+  user_id VARCHAR(255),
+  session_id VARCHAR(255) NOT NULL,
+  event_name VARCHAR(255) NOT NULL,
+  event_type VARCHAR(255),
+  event_category VARCHAR(100) NOT NULL,
+  event_timestamp TIMESTAMPTZ NOT NULL,
+  server_received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  sequence_number BIGINT DEFAULT 0,
+  page TEXT,
+  sanitized_route TEXT DEFAULT '/',
+  sdk_version VARCHAR(50) DEFAULT '2.1.0',
+  schema_version VARCHAR(50) DEFAULT '2.0',
+  properties JSONB DEFAULT '{}'::jsonb,
+  device JSONB DEFAULT '{}'::jsonb,
+  pointer_x DOUBLE PRECISION,
+  pointer_y DOUBLE PRECISION,
+  pointer_speed_px_per_ms DOUBLE PRECISION,
+  pointer_angle_deg DOUBLE PRECISION,
+  pointer_distance_px DOUBLE PRECISION,
+  is_straight_line BOOLEAN,
+  pointer_hold_duration_ms DOUBLE PRECISION,
+  hover_duration_ms DOUBLE PRECISION,
+  target_category TEXT,
+  target_id TEXT,
+  text_preview TEXT,
+  key_masked TEXT,
+  flight_time_ms DOUBLE PRECISION,
+  hold_time_ms DOUBLE PRECISION,
+  keys_per_second DOUBLE PRECISION,
+  is_typing_pause BOOLEAN,
+  field_id TEXT,
+  field_category TEXT,
+  from_field TEXT,
+  to_field TEXT,
+  field_duration_ms DOUBLE PRECISION,
+  paste_detected BOOLEAN,
+  form_id TEXT,
+  scroll_y DOUBLE PRECISION,
+  scroll_direction TEXT,
+  scroll_delta_px DOUBLE PRECISION,
+  scroll_depth_percent DOUBLE PRECISION,
+  scroll_milestone INTEGER,
+  touch_count INTEGER,
+  touch_duration_ms DOUBLE PRECISION,
+  gesture_type TEXT,
+  swipe_direction TEXT,
+  swipe_distance_px DOUBLE PRECISION,
+  orientation TEXT,
+  from_route TEXT,
+  to_route TEXT,
+  navigation_method TEXT,
+  visibility_state TEXT,
+  tab_active BOOLEAN,
+  idle_duration_ms DOUBLE PRECISION,
+  page_load_time_ms DOUBLE PRECISION,
+  dom_content_loaded_ms DOUBLE PRECISION,
+  ttfb_ms DOUBLE PRECISION,
+  flow_type TEXT,
+  payment_id TEXT,
+  payment_amount NUMERIC,
+  payment_currency TEXT,
+  recipient_type TEXT,
+  payment_status TEXT,
+  reason_code TEXT,
+  challenge_type TEXT,
+  account_category TEXT,
+  device_category TEXT,
+  device_os TEXT,
+  device_browser TEXT,
+  screen_width INTEGER,
+  screen_height INTEGER,
+  battery_level DOUBLE PRECISION,
+  is_charging BOOLEAN,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT pk_events PRIMARY KEY (tenant_id, event_id)
+);
+
+-- B-Tree Performance Indexes
+CREATE INDEX IF NOT EXISTS idx_events_tenant_user_time ON events (tenant_id, user_id, event_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_events_tenant_session_time ON events (tenant_id, session_id, event_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_events_tenant_type_time ON events (tenant_id, event_type, event_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_events_tenant_session_seq ON events (tenant_id, session_id, sequence_number ASC);</pre>
+
+  <h2>8.2 MongoDB Collections and Compound Indexes</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 35%;">Index Key Specification</th>
+        <th style="width: 25%;">Index Options</th>
+        <th style="width: 40%;">Query Optimization Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>{ tenantId: 1, eventId: 1 }</code></td>
+        <td><code>unique: true</code></td>
+        <td>Enforces cross-tenant idempotency and prevents duplicate event insertion.</td>
+      </tr>
+      <tr>
+        <td><code>{ tenantId: 1, userId: 1, timestamp: -1 }</code></td>
+        <td><code>sparse: false</code></td>
+        <td>Accelerates customer chronological journey lookups and historical baselining.</td>
+      </tr>
+      <tr>
+        <td><code>{ tenantId: 1, sessionId: 1, timestamp: -1 }</code></td>
+        <td><code>sparse: false</code></td>
+        <td>Accelerates session-level risk scoring feature extraction.</td>
+      </tr>
+      <tr>
+        <td><code>{ tenantId: 1, eventType: 1, timestamp: -1 }</code></td>
+        <td><code>sparse: false</code></td>
+        <td>Optimizes category-specific analytics queries.</td>
+      </tr>
+      <tr>
+        <td><code>{ tenantId: 1, sessionId: 1, sequenceNumber: 1 }</code></td>
+        <td><code>sparse: false</code></td>
+        <td>Enforces strict chronological sequence ordering for trajectory reconstruction.</td>
+      </tr>
+      <tr>
+        <td><code>{ receivedAt: 1 }</code></td>
+        <td><code>expireAfterSeconds: RAW_TTL_DAYS * 86400</code></td>
+        <td>Automated data lifecycle expiration on event_batches (if TTL &gt; 0).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>8.3 Zero-Downtime Hot-Switching Architecture</h2>
+  <ul>
+    <li><strong>Adapter Parity:</strong> Both PostgreSQLAdapter and MongoDBAdapter extend the common abstract base class EventRepository (src/database/interfaces/event.repository.js), guaranteeing 100% method signature parity.</li>
+    <li><strong>Concurrency Locking:</strong> When a switch request is posted to POST /api/admin/database/switch, the service acquires an in-memory lock (databaseRegistry.acquireSwitchLock()). Concurrent attempts receive an immediate HTTP 409 Conflict.</li>
+    <li><strong>Pre-Flight Health Validation:</strong> Before any pointer is switched, the candidate database executes a SELECT 1 or ping command. If the health check fails, the switch is aborted, the lock is released, and the previous database remains 100% active.</li>
+    <li><strong>In-Flight Safety:</strong> In-flight requests hold references to the active adapter instance and complete safely. Subsequent incoming requests immediately bind to the new adapter.</li>
+    <li><strong>Audit Logging:</strong> Every switch event (timestamp, admin username, fromDatabase, toDatabase, latency, error) is recorded in an in-memory audit ring buffer accessible via GET /api/admin/database/switch-history.</li>
+  </ul>
+
+  <div class="callout">
+    <div class="callout-title">DATA PRESERVATION NOTE UPON DATABASE SWITCHING</div>
+    Switching active database routes all new writes and reads strictly to the newly chosen database. Historical records stored in the previous database are completely preserved and never deleted, but are not automatically federated or queried by the new adapter. If unified cross-database historical querying is desired, an asynchronous ETL pipeline must be configured.
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- 9. INSTALLATION AND LOCAL SETUP -->
+  <h1>9. Installation and Local Setup</h1>
+  <p>Follow these step-by-step instructions to set up, configure, and verify the platform on a developer machine or staging environment.</p>
+
+  <h2>9.1 Prerequisites</h2>
+  <ul>
+    <li><strong>Runtime:</strong> Node.js v18.0.0+ (Tested and verified on Node.js v22.22.0)</li>
+    <li><strong>Package Manager:</strong> npm v10.0.0+</li>
+    <li><strong>Document Store:</strong> MongoDB v6.0+ or v7.0+ (Default port: 27017)</li>
+    <li><strong>Relational Store:</strong> PostgreSQL v14.0+ or v16.0+ (Default port: 5432)</li>
+  </ul>
+
+  <h2>9.2 Setup Instructions</h2>
+  <h3>Step 1: Install Dependencies</h3>
+  <pre>npm install</pre>
+
+  <h3>Step 2: Environment Configuration</h3>
+  <pre>cp .env.example .env
+# Edit .env with your local credentials:
+# ACTIVE_DATABASE=mongodb (or postgresql)
+# POSTGRES_USER=postgres
+# POSTGRES_PASSWORD=your_password
+# POSTGRES_DATABASE=behavioral_events</pre>
+
+  <h3>Step 3: Database Initialization</h3>
+  <p>For MongoDB, ensure the daemon is running (mongod). Collections and compound indexes are created automatically on startup.<br>For PostgreSQL, create the target database if not using the postgres superuser:</p>
+  <pre>psql -U postgres -c "CREATE DATABASE behavioral_events;"</pre>
+  <p>The application automatically executes the CREATE TABLE IF NOT EXISTS events and index statements during boot.</p>
+
+  <h3>Step 4: Launching the Backend Server</h3>
+  <pre># Development mode with file watching:
+npm run dev
+
+# Production daemon:
+npm start</pre>
+  <p>Console output will confirm database connection and port binding:</p>
+  <pre>[XyliumIngestion] connected to Mongo
+[DatabaseRegistry] Active database initialized: MONGODB
+[server] Active database (mongodb) verified healthy (2ms)
+[XyliumIngestion] listening on :8080</pre>
+
+  <h3>Step 5: Verifying Health and Ingestion</h3>
+  <pre># 1. Health check
+curl http://localhost:8080/health
+# Output: {"status":"ok","ts":"..."}
+
+# 2. Open Test Suite in Browser
+# Navigate to: http://localhost:8080/test-page-v2.html
+
+# 3. Open Admin Database Switcher Dashboard
+# Navigate to: http://localhost:8080/admin-database.html
+
+# 4. Open User Risk Inspector
+# Navigate to: http://localhost:8080/user-inspector.html</pre>
+
+  <div class="page-break"></div>
+
+  <!-- 10. ENVIRONMENT CONFIGURATION -->
+  <h1>10. Environment Configuration</h1>
+  <p>All environment variables defined in .env.example and consumed by src/config/index.js and src/config/database.config.js are documented below:</p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 22%;">Variable Name</th>
+        <th style="width: 10%;">Type</th>
+        <th style="width: 20%;">Default</th>
+        <th style="width: 10%;">Req / Opt</th>
+        <th style="width: 38%;">Purpose & Security Guidance</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>PORT</code></td>
+        <td>Integer</td>
+        <td><code>8080</code></td>
+        <td>Optional</td>
+        <td>TCP listening port for Express backend.</td>
+      </tr>
+      <tr>
+        <td><code>ACTIVE_DATABASE</code></td>
+        <td>Enum</td>
+        <td><code>mongodb</code></td>
+        <td>Required</td>
+        <td>Active database selection on boot: mongodb or postgresql.</td>
+      </tr>
+      <tr>
+        <td><code>MONGO_URI</code></td>
+        <td>String</td>
+        <td><code>mongodb://localhost:27017/xylium</code></td>
+        <td>Conditional</td>
+        <td>MongoDB connection URI. Use authenticated replica sets in production.</td>
+      </tr>
+      <tr>
+        <td><code>MONGODB_DATABASE</code></td>
+        <td>String</td>
+        <td><code>xylium</code></td>
+        <td>Optional</td>
+        <td>MongoDB target database name.</td>
+      </tr>
+      <tr>
+        <td><code>MONGO_MAX_POOL</code></td>
+        <td>Integer</td>
+        <td><code>20</code></td>
+        <td>Optional</td>
+        <td>Maximum concurrent connection pool size for MongoDB.</td>
+      </tr>
+      <tr>
+        <td><code>POSTGRES_HOST</code></td>
+        <td>String</td>
+        <td><code>localhost</code></td>
+        <td>Conditional</td>
+        <td>PostgreSQL hostname or RDS endpoint.</td>
+      </tr>
+      <tr>
+        <td><code>POSTGRES_PORT</code></td>
+        <td>Integer</td>
+        <td><code>5432</code></td>
+        <td>Optional</td>
+        <td>PostgreSQL TCP port.</td>
+      </tr>
+      <tr>
+        <td><code>POSTGRES_DATABASE</code></td>
+        <td>String</td>
+        <td><code>behavioral_events</code></td>
+        <td>Conditional</td>
+        <td>Target PostgreSQL database name.</td>
+      </tr>
+      <tr>
+        <td><code>POSTGRES_USER</code></td>
+        <td>String</td>
+        <td><code>postgres</code></td>
+        <td>Conditional</td>
+        <td>PostgreSQL username.</td>
+      </tr>
+      <tr>
+        <td><code>POSTGRES_PASSWORD</code></td>
+        <td>String</td>
+        <td><code>""</code></td>
+        <td>Conditional</td>
+        <td>PostgreSQL password. Masked in all logs and API responses.</td>
+      </tr>
+      <tr>
+        <td><code>POSTGRES_SSL</code></td>
+        <td>Boolean</td>
+        <td><code>false</code></td>
+        <td>Optional</td>
+        <td>Enable SSL/TLS for PostgreSQL connections (required for RDS/Cloud SQL).</td>
+      </tr>
+      <tr>
+        <td><code>POSTGRES_MAX_POOL</code></td>
+        <td>Integer</td>
+        <td><code>20</code></td>
+        <td>Optional</td>
+        <td>Maximum concurrent pool size for pg.Pool.</td>
+      </tr>
+      <tr>
+        <td><code>ALLOWED_TENANTS</code></td>
+        <td>List</td>
+        <td><code>acme_corp</code></td>
+        <td>Required</td>
+        <td>Comma-separated allowlist of valid tenant IDs. Empty = allow all (dev only).</td>
+      </tr>
+      <tr>
+        <td><code>CORS_ORIGINS</code></td>
+        <td>List</td>
+        <td><code>""</code></td>
+        <td>Required</td>
+        <td>Comma-separated allowed browser origins. NEVER use * in banking production.</td>
+      </tr>
+      <tr>
+        <td><code>TENANT_API_KEYS</code></td>
+        <td>JSON</td>
+        <td><code>{}</code></td>
+        <td>Required</td>
+        <td>JSON map {"tenant_id":"hex_key"} for authenticating server-to-server calls.</td>
+      </tr>
+      <tr>
+        <td><code>MAX_BATCH_EVENTS</code></td>
+        <td>Integer</td>
+        <td><code>500</code></td>
+        <td>Optional</td>
+        <td>Maximum events accepted per single batch payload.</td>
+      </tr>
+      <tr>
+        <td><code>MAX_PAYLOAD_BYTES</code></td>
+        <td>Integer</td>
+        <td><code>262144</code></td>
+        <td>Optional</td>
+        <td>Maximum body size (256 KB). Rejects oversized payloads with HTTP 413.</td>
+      </tr>
+      <tr>
+        <td><code>RAW_TTL_DAYS</code></td>
+        <td>Integer</td>
+        <td><code>0</code></td>
+        <td>Optional</td>
+        <td>Auto-expiration days for raw event_batches (0 = keep forever).</td>
+      </tr>
+      <tr>
+        <td><code>RATE_LIMIT_WINDOW_MS</code></td>
+        <td>Integer</td>
+        <td><code>60000</code></td>
+        <td>Optional</td>
+        <td>Sliding rate limit window in milliseconds (1 minute).</td>
+      </tr>
+      <tr>
+        <td><code>RATE_LIMIT_MAX</code></td>
+        <td>Integer</td>
+        <td><code>3000</code></td>
+        <td>Optional</td>
+        <td>Maximum requests per IP per window.</td>
+      </tr>
+      <tr>
+        <td><code>JWT_SECRET</code></td>
+        <td>String</td>
+        <td><code>xylium-default-dev...</code></td>
+        <td>Required</td>
+        <td>Secret key for signing and verifying customer authentication tokens.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- 11. CLIENT-SIDE INTEGRATION REQUIREMENTS -->
+  <h1>11. Client-Side Integration Requirements</h1>
+  <p>To ensure a seamless, secure rollout, the banking client’s engineering and security teams must fulfill the following operational prerequisites prior to deployment.</p>
+
+  <h2>11.1 Banking Client Pre-Deployment Checklist</h2>
+  <ul>
+    <li><strong>1. Origin Registration:</strong> Furnish all production, UAT, and staging origin domains (e.g., https://app.nexusbank.com) to populate CORS_ORIGINS.</li>
+    <li><strong>2. Content Security Policy (CSP):</strong> Configure the bank’s Content Security Policy (CSP) headers to allow script execution and outbound telemetry transmission:
+      <pre>Content-Security-Policy: script-src 'self' https://cdn.nexusbank.com; connect-src 'self' https://collector.nexusbank.com;</pre>
+    </li>
+    <li><strong>3. API Secret Generation:</strong> Generate high-entropy 256-bit hexadecimal secrets for TENANT_API_KEYS to authenticate backend identity linking calls.</li>
+    <li><strong>4. Identity Linking Hook:</strong> Implement the server-side POST /identify call in the bank’s authentication microservice immediately following credential validation.</li>
+    <li><strong>5. User ID Hashing:</strong> Confirm that pseudonymous user IDs (e.g. internal hashed UUIDs) are supplied rather than unencrypted Social Security Numbers or primary bank account numbers.</li>
+    <li><strong>6. Sensitive Form Audit:</strong> Verify that all custom transaction forms conform to data-bf-field privacy tagging.</li>
+    <li><strong>7. Synthetic Test Accounts:</strong> Supply synthetic test credentials and test scenarios for automated UAT verification.</li>
+  </ul>
+
+  <h2>11.2 Stakeholder Responsibility Matrix</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 32%;">Operational Activity</th>
+        <th style="width: 22%;">Bank Client Engineering</th>
+        <th style="width: 22%;">SDK Provider / Vendor</th>
+        <th style="width: 24%;">SecOps & Compliance</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>SDK Script Embedding & SPA Hooking</td>
+        <td>R (Responsible)</td>
+        <td>C (Consulted)</td>
+        <td>I (Informed)</td>
+      </tr>
+      <tr>
+        <td>CSP & Network Proxy Allowlisting</td>
+        <td>R (Responsible)</td>
+        <td>C (Consulted)</td>
+        <td>A (Accountable)</td>
+      </tr>
+      <tr>
+        <td>Server-to-Server /identify Call</td>
+        <td>R (Responsible)</td>
+        <td>C (Consulted)</td>
+        <td>I (Informed)</td>
+      </tr>
+      <tr>
+        <td>Backend Ingestion & Database Infrastructure</td>
+        <td>C (Consulted)</td>
+        <td>R (Responsible)</td>
+        <td>A (Accountable)</td>
+      </tr>
+      <tr>
+        <td>Biometric Risk Baseline Tuning</td>
+        <td>I (Informed)</td>
+        <td>R (Responsible)</td>
+        <td>A (Accountable)</td>
+      </tr>
+      <tr>
+        <td>Privacy & Data Minimization Sign-off</td>
+        <td>C (Consulted)</td>
+        <td>I (Informed)</td>
+        <td>R / A (Accountable)</td>
+      </tr>
+      <tr>
+        <td>Incident Management & Escalation</td>
+        <td>R (Responsible)</td>
+        <td>R (Responsible)</td>
+        <td>A (Accountable)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- 12. TESTING AND ACCEPTANCE CRITERIA -->
+  <h1>12. Testing and Acceptance Criteria</h1>
+  <p>The platform includes an automated test suite executed via node --test. Automated test verification results and the formal client acceptance checklist are detailed below.</p>
+
+  <h2>12.1 Automated Test Suite Verification</h2>
+  <p>Automated testing was conducted using Node’s native test runner against the codebase. Two core enterprise suites achieved 100% pass rates across 45 verified test specifications:</p>
+  <ul>
+    <li><strong>tests/analytics.test.js:</strong> 29 of 29 subtests passed (duration: 488ms). Validated event batch ingestion, anonymous session tracking, retroactive user linking, pointer dynamics sequencing, cadence flight times, password shielding, banking workflows, and explainable risk scoring.</li>
+    <li><strong>tests/dual-database.test.js:</strong> 16 of 16 subtests passed (duration: 683ms). Validated PostgreSQL and MongoDB adapter parity, ACID event persistence, tenant isolation, idempotency without duplicate inserts, graceful connection recovery, atomic database hot-switching, concurrency locks, and audit history.</li>
+  </ul>
+
+  <h2>12.2 Client User Acceptance Testing (UAT) Checklist</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 24%;">Verification Item</th>
+        <th style="width: 38%;">Acceptance Criteria</th>
+        <th style="width: 16%;">Verification Status</th>
+        <th style="width: 22%;">Evidence Source</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>SDK Script Loading</td>
+        <td>SDK loads cleanly in &lt;50ms without console errors or blocking DOM rendering.</td>
+        <td>Verified</td>
+        <td>test-page-v2.html:169</td>
+      </tr>
+      <tr>
+        <td>Biometric Event Capture</td>
+        <td>Cursor movements, key flight times, and scroll milestones fire as expected.</td>
+        <td>Verified</td>
+        <td>analytics.test.js:23</td>
+      </tr>
+      <tr>
+        <td>Sensitive Value Shielding</td>
+        <td>Password and card inputs produce keyMasked="char"; zero characters captured.</td>
+        <td>Verified</td>
+        <td>analytics.test.js:24</td>
+      </tr>
+      <tr>
+        <td>Payload Validation</td>
+        <td>Malformed schemas or oversized batches are rejected with HTTP 400/413.</td>
+        <td>Verified</td>
+        <td>dual-database.test.js:3</td>
+      </tr>
+      <tr>
+        <td>Server Identity Linking</td>
+        <td>POST /identify binds userId and backfills pre-login batches.</td>
+        <td>Verified</td>
+        <td>analytics.test.js:18</td>
+      </tr>
+      <tr>
+        <td>Dual Database Persistence</td>
+        <td>Valid events store accurately in both PostgreSQL and MongoDB.</td>
+        <td>Verified</td>
+        <td>dual-database.test.js:2</td>
+      </tr>
+      <tr>
+        <td>Hot Database Switching</td>
+        <td>Active database switches atomically under load without dropping requests.</td>
+        <td>Verified</td>
+        <td>dual-database.test.js:9,11</td>
+      </tr>
+      <tr>
+        <td>Audit Logging</td>
+        <td>All database switches record admin ID, timestamps, and health status.</td>
+        <td>Verified</td>
+        <td>dual-database.test.js:16</td>
+      </tr>
+      <tr>
+        <td>Behavioral Risk Scoring</td>
+        <td>Calculates explainable risk signals (0–100) and step-up recommendations.</td>
+        <td>Verified</td>
+        <td>analytics.test.js:27</td>
+      </tr>
+      <tr>
+        <td>Right-to-be-Forgotten</td>
+        <td>DELETE /api/analytics/users/:userId purges all historical customer data.</td>
+        <td>Verified</td>
+        <td>analytics.test.js:20</td>
+      </tr>
+      <tr>
+        <td>Network Risk / IP Intel</td>
+        <td>Detects commercial VPN/proxy IPs via server lookup.</td>
+        <td>Pending Fix</td>
+        <td>Route unmounted in app.js</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- 13. SECURITY, COMPLIANCE, AND LIMITATIONS -->
+  <h1>13. Security, Compliance, and Limitations</h1>
+  <p>Enterprise security controls, legal data minimization, accessibility considerations, and operational boundaries are summarized below:</p>
+
+  <h2>13.1 Implemented Security Controls</h2>
+  <ul>
+    <li><strong>Transport Layer Security (TLS):</strong> All communication requires TLS 1.2 or TLS 1.3 encryption. Unencrypted HTTP is rejected.</li>
+    <li><strong>Timing-Safe Authentication:</strong> Server-to-server API key comparisons use crypto.timingSafeEqual to prevent side-channel timing attacks.</li>
+    <li><strong>Tenant Isolation:</strong> Every database query and index is strictly scoped to tenantId. Cross-tenant data leakage is structurally impossible.</li>
+    <li><strong>Rate Limiting:</strong> The backend enforces per-IP sliding rate limits (3,000 requests/minute) across all public endpoints.</li>
+    <li><strong>Beacon Body Parsing:</strong> Express handles text/plain payloads from sendBeacon gracefully, preventing body-parser dropouts upon page unload.</li>
+  </ul>
+
+  <h2>13.2 Accessibility and Legitimate Human Variability</h2>
+  <p>A primary concern for financial institutions is ensuring that users with disabilities or varying physical capabilities are not unfairly penalized. The platform incorporates specific accommodations:</p>
+  <ul>
+    <li><strong>Assistive Technologies:</strong> Users who navigate via screen readers or TAB keys emit linear focus events. The risk engine differentiates keyboard-only navigation from automated bot injections by checking focus dwell intervals.</li>
+    <li><strong>Motor Tremors:</strong> Motor tremors, unsteady pointer movement, or variable keystroke speeds do not elevate risk scores—irregular human motion is recognized as organic, whereas inhumanly linear paths elevate bot risk.</li>
+  </ul>
+
+  <h2>13.3 Known System Limitations</h2>
+  <ul>
+    <li><strong>Probabilistic Boundary:</strong> Behavioral biometric scores are probabilistic indicators. They must never be used as the sole factor to deny access; they should trigger step-up MFA or manual review.</li>
+    <li><strong>Baseline Maturation:</strong> Accurate individual baseline comparison requires 3 to 5 prior sessions. New customer sessions are evaluated against global population baselines.</li>
+    <li><strong>Ingest Decoupling:</strong> In high-volume enterprise deployments (&gt;10,000 req/sec), synchronous database writes should be decoupled using an external message queue (e.g. Apache Kafka or AWS SQS).</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- 14. TROUBLESHOOTING -->
+  <h1>14. Troubleshooting</h1>
+  <p>This diagnostic guide provides remediation steps for common operational issues encountered during integration and staging.</p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 22%;">Observed Issue / Error</th>
+        <th style="width: 24%;">Root Cause</th>
+        <th style="width: 26%;">Diagnostic Command / Log Indicator</th>
+        <th style="width: 28%;">Recommended Remediation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>SDK fails to load in browser</td>
+        <td>Blocked by Content Security Policy or 404 URL path.</td>
+        <td>DevTools Console: Refused to load script due to CSP directive.</td>
+        <td>Add CDN domain to CSP script-src; verify static asset URL.</td>
+      </tr>
+      <tr>
+        <td>Events not being captured</td>
+        <td>User consent not granted, or requireConsent is true.</td>
+        <td>Console: [XyliumBF v2] init (no further log)</td>
+        <td>Call window.XyliumBF.grantConsent() or pass consent: true in init().</td>
+      </tr>
+      <tr>
+        <td>HTTP 400 Bad Request</td>
+        <td>Payload fails Zod schema validation; missing required field.</td>
+        <td>Response: {"error":"invalid payload","details":{...}}</td>
+        <td>Inspect request body against event.schema.js; verify sessionId.</td>
+      </tr>
+      <tr>
+        <td>HTTP 401 Unauthorized</td>
+        <td>Missing or invalid Bearer JWT token or x-api-key header.</td>
+        <td>Response: {"error":"unauthorized"}</td>
+        <td>Supply valid x-api-key matching TENANT_API_KEYS map.</td>
+      </tr>
+      <tr>
+        <td>HTTP 403 Forbidden</td>
+        <td>tenantId is missing or not present in ALLOWED_TENANTS.</td>
+        <td>Response: {"error":"unknown tenant"}</td>
+        <td>Add tenantId to ALLOWED_TENANTS list in backend .env.</td>
+      </tr>
+      <tr>
+        <td>HTTP 404 on /ip-intel</td>
+        <td>Route is implemented but unmounted in src/app.js.</td>
+        <td>Response: {"error":"not found"}</td>
+        <td>Mount ipIntelRouter in src/app.js (see Section 2.2 of Audit Notes).</td>
+      </tr>
+      <tr>
+        <td>HTTP 409 Conflict on DB switch</td>
+        <td>Another database switch is currently executing.</td>
+        <td>Response: {"error":"A database switch is already in progress"}</td>
+        <td>Wait for existing switch to complete; retry after 2 seconds.</td>
+      </tr>
+      <tr>
+        <td>HTTP 413 Payload Too Large</td>
+        <td>Flushed batch exceeds MAX_PAYLOAD_BYTES (256 KB).</td>
+        <td>Response: {"error":"payload too large"}</td>
+        <td>Reduce SDK batchSize option from 100 to 25.</td>
+      </tr>
+      <tr>
+        <td>HTTP 429 Too Many Requests</td>
+        <td>Client IP exceeded rate limit (3,000 req/min).</td>
+        <td>Response: Too many requests, please try again later.</td>
+        <td>Verify TRUST_PROXY configuration so load balancer IP is not shared.</td>
+      </tr>
+      <tr>
+        <td>PostgreSQL connection timeout</td>
+        <td>DB host unreachable or connection pool exhausted.</td>
+        <td>Log: [PostgreSQLAdapter] Connection timeout</td>
+        <td>Verify POSTGRES_HOST and port 5432; check pool usage in pg_stat_activity.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- 15. GO-LIVE CHECKLIST AND NEXT STEPS -->
+  <h1>15. Go-Live Checklist and Next Steps</h1>
+  <p>To guide bank executives and technical leads toward successful production launch, the table below delineates completed platform capabilities, outstanding engineering items, and the phased onboarding roadmap.</p>
+
+  <h2>15.1 Production Readiness Status</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 26%;">Capability / Requirement</th>
+        <th style="width: 18%;">Category</th>
+        <th style="width: 18%;">Status</th>
+        <th style="width: 38%;">Remediation / Implementation Ownership</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Client Biometrics SDK</td>
+        <td>Client Tier</td>
+        <td>Production Ready</td>
+        <td>Completed. Verified in analytics-tracker.js and modular sdk/.</td>
+      </tr>
+      <tr>
+        <td>Zero PII / Credential Shielding</td>
+        <td>Security</td>
+        <td>Production Ready</td>
+        <td>Completed. Verified via maskKey() and SENSITIVE_INPUT_REGEX.</td>
+      </tr>
+      <tr>
+        <td>Dual Database Abstraction</td>
+        <td>Database</td>
+        <td>Production Ready</td>
+        <td>Completed. PostgreSQL and MongoDB adapters verified in unit tests.</td>
+      </tr>
+      <tr>
+        <td>Zero-Downtime Hot Switching</td>
+        <td>Operations</td>
+        <td>Production Ready</td>
+        <td>Completed. Tested with concurrency locks and audit history.</td>
+      </tr>
+      <tr>
+        <td>Server Identity Stitching</td>
+        <td>Identity</td>
+        <td>Production Ready</td>
+        <td>Completed. Verified via /identify and /sessions/link.</td>
+      </tr>
+      <tr>
+        <td>Explainable Behavioral Risk Scoring</td>
+        <td>Analytics</td>
+        <td>Production Ready</td>
+        <td>Completed. Verified via riskService.js scoring rules.</td>
+      </tr>
+      <tr>
+        <td>Mount /ip-intel Route</td>
+        <td>Backend Gateway</td>
+        <td>Engineering Item</td>
+        <td>Outstanding. Requires adding app.use("/ip-intel", ...) in src/app.js.</td>
+      </tr>
+      <tr>
+        <td>Enable Auth on /cp Route</td>
+        <td>Security</td>
+        <td>Engineering Item</td>
+        <td>Outstanding. Uncomment apiKeyGuard in tools/customPatternRoute.js.</td>
+      </tr>
+      <tr>
+        <td>Production CORS Allowlist</td>
+        <td>Client Setup</td>
+        <td>Client Action</td>
+        <td>Awaiting Bank Input. Provide production FQDNs for CORS_ORIGINS.</td>
+      </tr>
+      <tr>
+        <td>CSP Header Deployment</td>
+        <td>Client Setup</td>
+        <td>Client Action</td>
+        <td>Awaiting Bank Input. Deploy script-src and connect-src headers.</td>
+      </tr>
+      <tr>
+        <td>Server-to-Server Hook in Auth Backend</td>
+        <td>Client Setup</td>
+        <td>Client Action</td>
+        <td>Awaiting Bank Input. Call POST /identify upon verified login.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>15.2 Recommended Phased Onboarding Roadmap</h2>
+  <ul>
+    <li><strong>Phase 1: Architecture Alignment & Sandbox (Weeks 1–2):</strong> Finalize architectural alignment, provision sandbox environments, exchange API keys, and test health endpoints.</li>
+    <li><strong>Phase 2: Staging Integration & UAT (Weeks 3–4):</strong> Embed SDK in staging environments, execute synthetic test cases (human vs. bot), verify sensitive data exclusion, and test identity stitching.</li>
+    <li><strong>Phase 3: Shadow Mode & Baseline Calibration (Weeks 5–6):</strong> Deploy SDK to production in passive "shadow mode" (score without blocking). Collect baseline data for 2 weeks to tune risk scoring thresholds against legitimate user behavior.</li>
+    <li><strong>Phase 4: Full Production Go-Live (Week 7+):</strong> Activate adaptive enforcement. High-risk sessions trigger step-up authentication. Establish operational monitoring and 24/7 incident response runbooks.</li>
+  </ul>
+
+</body>
+</html>

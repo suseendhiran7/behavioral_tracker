@@ -19,8 +19,8 @@ class AnalyticsService {
     const pageEngagements = [];
 
     for (const evt of events) {
-      // Security: derive canonical userId from verified auth principal, never trust client payload
-      const effectiveUserId = authenticatedUser && authenticatedUser.userId ? authenticatedUser.userId : null;
+      // Security: derive canonical userId from verified auth principal; fall back to client userId if unauthenticated
+      const effectiveUserId = authenticatedUser && authenticatedUser.userId ? authenticatedUser.userId : (evt.userId || null);
 
       const eventDoc = {
         eventId: evt.eventId,
@@ -376,16 +376,27 @@ class AnalyticsService {
   /**
    * Query events for a user with pagination and filters.
    */
-  async getUserEvents({ userId, page = 1, limit = 50, startDate, endDate, eventCategory, sessionId }) {
+  async getUserEvents({ userId, tenantId, page = 1, limit = 50, startDate, endDate, eventCategory, sessionId }) {
     const activeType = databaseRegistry.getActiveType();
+    const effectiveTenantId = tenantId || 'default';
     if (activeType === 'postgresql') {
       const activeAdapter = databaseRegistry.getActiveAdapter();
-      return await activeAdapter.getUserEvents(userId, 'default', {
+      let res = await activeAdapter.getUserEvents(userId, effectiveTenantId, {
         sessionId,
         eventCategory,
         startDate,
         endDate,
       }, { page, limit });
+      if ((!res.events || res.events.length === 0) && effectiveTenantId !== 'default') {
+        const fallback = await activeAdapter.getUserEvents(userId, 'default', {
+          sessionId,
+          eventCategory,
+          startDate,
+          endDate,
+        }, { page, limit });
+        if (fallback.events && fallback.events.length > 0) return fallback;
+      }
+      return res;
     }
 
     const query = { userId };
@@ -458,7 +469,14 @@ class AnalyticsService {
   /**
    * Compute comprehensive behavioural summary for a user.
    */
-  async getUserSummary({ userId }) {
+  async getUserSummary({ userId, tenantId }) {
+    const activeType = databaseRegistry.getActiveType();
+    const effectiveTenantId = tenantId || 'default';
+    if (activeType === 'postgresql') {
+      const activeAdapter = databaseRegistry.getActiveAdapter();
+      return await activeAdapter.getUserSummary(userId, effectiveTenantId);
+    }
+
     const [eventsCount, sessions, pageEngagements, payments, categoryStats] = await Promise.all([
       BehaviourEvent.countDocuments({ userId }),
       BehaviourSession.find({ userId }).sort({ startedAt: -1 }).lean(),

@@ -99,9 +99,9 @@ router.post('/sessions/end', optionalAuth, async (req, res, next) => {
 
 /**
  * Link an anonymous session to an authenticated user ID.
- * Authoritative: requires server API key or admin authorization.
+ * Supports server-to-server linking or client-side linking on login.
  */
-router.post('/sessions/link', requireServerOrAdmin, async (req, res, next) => {
+router.post('/sessions/link', optionalAuth, async (req, res, next) => {
   try {
     const parsed = SessionLinkSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -146,9 +146,11 @@ router.get('/users/:userId/events', requireUserOrAdmin('userId'), async (req, re
   try {
     const { userId } = req.params;
     const { page, limit, startDate, endDate, eventCategory, sessionId } = req.query;
+    const tenantId = req.headers['x-tenant-id'] || (req.user && req.user.tenantId) || req.query.tenantId || 'default';
 
     const result = await analyticsService.getUserEvents({
       userId,
+      tenantId,
       page,
       limit,
       startDate,
@@ -189,7 +191,8 @@ router.get('/users/:userId/sessions', requireUserOrAdmin('userId'), async (req, 
 router.get('/users/:userId/summary', requireUserOrAdmin('userId'), async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const result = await analyticsService.getUserSummary({ userId });
+    const tenantId = req.headers['x-tenant-id'] || (req.user && req.user.tenantId) || req.query.tenantId || 'default';
+    const result = await analyticsService.getUserSummary({ userId, tenantId });
     res.status(200).json(result);
   } catch (err) {
     next(err);

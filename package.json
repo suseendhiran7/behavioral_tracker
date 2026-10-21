@@ -40,6 +40,8 @@
       "/node_modules/",
       "/tests/analytics.test.js",
       "/tests/dual-database.test.js"
-    ]
+    ],
+    "docx": "^9.13.0",
+    "pg-mem": "^3.0.14"
   }
 }

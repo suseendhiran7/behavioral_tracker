@@ -31,6 +31,8 @@ const BehaviourEventSchema = new mongoose.Schema(
         'error',
         'custom',
         'location',
+        'device',
+        'identity',
       ],
       index: true,
     },

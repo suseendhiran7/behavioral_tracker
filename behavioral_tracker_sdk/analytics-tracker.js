@@ -123,9 +123,9 @@
         clientId: opts.clientId || opts.tenantId || 'client_nexus_bank',
         tenantId: opts.tenantId || opts.clientId || 'default',
         appId: opts.appId || 'banking_app',
-        batchSize: 25,
+        batchSize: 100,
         flushIntervalMs: 5000,
-        maxQueueSize: 500,
+        maxQueueSize: 1000,
         maxRetries: 4,
         idleThresholdMs: 5000,
         pointerSamplingMs: 50,
@@ -1155,6 +1155,9 @@
         if (res.ok) {
           self.queue.splice(0, batch.length);
           self.retryCount = 0;
+          if (self.queue.length >= self.options.batchSize) {
+            self.flush(false);
+          }
         } else {
           self.handleFlushFailure();
         }

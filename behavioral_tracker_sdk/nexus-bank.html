@@ -17,9 +17,10 @@
 <script src="analytics-tracker.js"></script>
 <script>
   window.behaviorSDK = window.BehaviorSDK ? window.BehaviorSDK.init({
-    endpoint: 'http://localhost:8080/api/analytics',
+    endpoint: (typeof window !== 'undefined' && window.location.port === '8080' ? window.location.origin : 'http://localhost:8080') + '/api/analytics',
     clientId: 'client_nexus_bank',
     tenantId: 'tenant_test001',
+    batchSize: 100,
     consent: true
   }) : null;
 </script>

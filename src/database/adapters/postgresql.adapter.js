@@ -485,9 +485,9 @@ class PostgreSQLAdapter extends EventRepository {
     this.activeRequests++;
     try {
       const tenantId = filters.tenantId || 'default';
-      const whereClauses = ['tenant_id = $1'];
-      const params = [tenantId];
-      let pIdx = 2;
+      const whereClauses = tenantId === 'all' ? ['1=1'] : ['(tenant_id = $1 OR tenant_id = \'default\')'];
+      const params = tenantId === 'all' ? [] : [tenantId];
+      let pIdx = params.length + 1;
 
       if (filters.userId) {
         whereClauses.push(`user_id = $${pIdx++}`);

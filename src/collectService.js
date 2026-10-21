@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const config = require('./config');
 const { LoginEvent, SessionEvent, PaymentEvent } = require('./models/EventStores');
 const EventBatch = require('./models/EventBatch');
@@ -162,7 +163,14 @@ async function ingest(dto, clientIp) {
   }
 
   const sessionId = deriveSessionId(dto.events);
-  const existing = await Session.findById(sessionId).lean();
+  let existing = null;
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
+    try {
+      existing = await Session.findById(sessionId).lean();
+    } catch (e) {
+      existing = null;
+    }
+  }
 
   // Sessions created before this change have no `phase`; infer it.
   const startPhase = existing ? existing.phase || (existing.userId ? 'session' : 'login') : 'login';
@@ -181,11 +189,9 @@ async function ingest(dto, clientIp) {
     clientIp,
   };
 
-  const mongoose = require('mongoose');
-  const activeType = databaseRegistry.getActiveType();
   const activeAdapter = databaseRegistry.getActiveAdapter();
 
-  if (activeType === 'postgresql' && activeAdapter) {
+  if (activeAdapter) {
     // The SDK sends its own compact shape ({ type, t, x, y, field, props, ... }),
     // but the adapters run normalizeEvent(), which validates the canonical
     // schema ({ eventName, eventType, eventCategory, pointerX, ... }).
@@ -276,15 +282,12 @@ async function ingest(dto, clientIp) {
  * onto the pre-login events already stored in login_events.
  */
 async function attachUserId(sessionId, userId, source, { setPhase = true } = {}) {
-  const activeType = databaseRegistry.getActiveType();
-  if (activeType === 'postgresql') {
-    const activeAdapter = databaseRegistry.getActiveAdapter();
-    if (activeAdapter && typeof activeAdapter.linkSessionEvents === 'function') {
-      try {
-        await activeAdapter.linkSessionEvents(sessionId, userId, 'default');
-      } catch (err) {
-        console.warn('[collect] postgres linkSessionEvents failed:', err.message);
-      }
+  const activeAdapter = databaseRegistry.getActiveAdapter();
+  if (activeAdapter && typeof activeAdapter.linkSessionEvents === 'function') {
+    try {
+      await activeAdapter.linkSessionEvents(sessionId, userId, 'default');
+    } catch (err) {
+      console.warn('[collect] linkSessionEvents failed:', err.message);
     }
   }
 

@@ -95,7 +95,12 @@ function createApp() {
 
   // Serve behavioral tracker SDK and demo web interfaces
   const path = require('path');
+  app.use(express.static(path.join(__dirname, '../admin_ui')));
+  app.use(express.static(path.join(__dirname, '../sdk')));
   app.use(express.static(path.join(__dirname, '../behavioral_tracker_sdk')));
+  app.use('/sdk', express.static(path.join(__dirname, '../sdk')));
+  app.use('/admin_ui', express.static(path.join(__dirname, '../admin_ui')));
+  app.use('/behavioral_tracker_sdk', express.static(path.join(__dirname, '../behavioral_tracker_sdk')));
 
   // 404
   app.use((req, res) => res.status(404).json({ error: 'not found' }));

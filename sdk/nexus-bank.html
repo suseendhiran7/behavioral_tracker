@@ -12,7 +12,8 @@
         data-tenant-id="tenant_test001"
         data-app-id="app_test001"
         data-api-endpoint="http://localhost:8080"
-        data-capture-geo="true"></script>
+        data-require-consent="false"
+        data-capture-geo="false"></script>
 
 <!-- 2) Pattern files, in ANY order. Each self-registers with the core, so you
         can add or remove a pattern just by adding/removing its <script> line. -->
@@ -29,6 +30,18 @@
 <script src="xylium-network-risk.js"></script>
 <script src="xylium-bot.js"></script>
 <script src="xylium-identity.js"></script>
+
+<!-- Centralized Behavioral Fingerprinting SDK -->
+<script src="analytics-tracker.js"></script>
+<script>
+  window.behaviorSDK = window.BehaviorSDK ? window.BehaviorSDK.init({
+    endpoint: (typeof window !== 'undefined' && window.location.port === '8080' ? window.location.origin : 'http://localhost:8080') + '/api/analytics',
+    clientId: 'client_nexus_bank',
+    tenantId: 'tenant_test001',
+    batchSize: 100,
+    consent: true
+  }) : null;
+</script>
 
 <style>
   /* ── Design tokens ─────────────────────────────────────────────── */
@@ -1711,6 +1724,7 @@
         <li><a onclick="showDashSection('investments')" id="nav-investments">Investments</a></li>
         <li><a onclick="showDashSection('loans')" id="nav-loans">Loans</a></li>
         <li><a onclick="showDashSection('profile')" id="nav-profile">Profile</a></li>
+        <li><a href="admin-database.html" style="color:#60a5fa;" target="_blank">🔄 DB Switcher</a></li>
       </ul>
     </div>
     <div class="dash-nav-right">
@@ -2429,9 +2443,15 @@ function showPage(name) {
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   var target = document.getElementById('page-' + name);
   if (target) target.classList.add('active');
+  if (window.behaviorSDK) {
+    window.behaviorSDK.trackPageView('/' + name);
+  }
   if (name === 'dashboard') {
     buildChart();
     buildStatements();
+    if (window.behaviorSDK) {
+      window.behaviorSDK.trackAccountPageView('checking_and_savings', 'dashboard_overview');
+    }
   }
 }
 
@@ -2449,6 +2469,10 @@ function showDashSection(name) {
   var navTarget = document.getElementById('nav-' + name);
   if (navTarget) navTarget.classList.add('active');
   if (name === 'statements') buildStatements();
+
+  if (window.behaviorSDK) {
+    window.behaviorSDK.trackAccountPageView(name, 'section_view');
+  }
 }
 
 // ── Login ───────────────────────────────────────────────────────
@@ -2469,6 +2493,9 @@ function handleLogin() {
   // SPA login (no native <form> submit): tell the SDK the form was submitted.
   // This also sends the autofill_summary event.
   if (window.XyliumBF) window.XyliumBF.markFormSubmitted();
+  if (window.behaviorSDK) {
+    window.behaviorSDK.trackLoginAttempt({ method: 'password', usernameSupplied: !!un });
+  }
 
   var user = USERS.find(function(u) {
     return (u.username === un || u.id === un) && u.password === pw;
@@ -2478,6 +2505,9 @@ function handleLogin() {
     if (window.XyliumBF) window.XyliumBF.reportLoginResult(false, 'bad_credentials');
     pwErr.textContent = 'Incorrect Customer ID or password. Please try again.';
     pwErr.classList.remove('hidden');
+    if (window.behaviorSDK) {
+      window.behaviorSDK.trackLoginFailure('invalid_credentials');
+    }
     return;
   }
 
@@ -2488,13 +2518,20 @@ function handleLogin() {
     // In production, pass the user's registered home from your backend:
     // window.XyliumBF.setHomeLocation(homeLat, homeLon);
   }
+  if (window.behaviorSDK) {
+    window.behaviorSDK.trackLoginSuccess(user.id, { method: 'password' });
+  }
 
   showPage('dashboard');
   showToast('Welcome back, Arjun. Last login: Yesterday 11:42 PM', 'success');
 }
 
 function handleLogout() {
-  if (window.XyliumBF) window.XyliumBF._debugFlushNow();
+  if (window.XyliumBF) {
+    if (typeof window.XyliumBF.logout === 'function') window.XyliumBF.logout();
+    else window.XyliumBF._debugFlushNow();
+  }
+  if (window.behaviorSDK) window.behaviorSDK.trackLogout();
   document.getElementById('login-username').value = '';
   document.getElementById('login-password').value = '';
   showPage('landing');
@@ -2509,6 +2546,9 @@ function togglePassword() {
 // ── Modals ──────────────────────────────────────────────────────
 function showModal(name) {
   document.getElementById('modal-' + name).classList.add('open');
+  if (name === 'transfer-confirm' && window.behaviorSDK) {
+    window.behaviorSDK.trackStepUpAuthRequired('txn_pin_otp', 'transfer_confirmation');
+  }
 }
 
 function closeModal(name) {
@@ -2533,6 +2573,15 @@ function moveOTP(input, index) {
 // ── Transfer ────────────────────────────────────────────────────
 function confirmTransfer() {
   closeModal('transfer-confirm');
+  var txnId = 'TXN_' + Date.now();
+  if (window.behaviorSDK) {
+    window.behaviorSDK.trackPaymentFlowStart('bank_transfer', 'INR', 'domestic_neft');
+    window.behaviorSDK.trackPaymentConfirmation(txnId, 'succeeded', 'bank_transfer');
+  }
+  if (window.XyliumBF) {
+    window.XyliumBF.track('payment_transferred', { txnId: txnId, amount: 10000, recipient: 'Priya Sharma' });
+    window.XyliumBF._debugFlushNow();
+  }
   showToast('₹10,000 transferred successfully to Priya Sharma', 'success');
 }
 
@@ -2629,15 +2678,8 @@ function buildStatements() {
 // battery, network info, etc.) only starts if the visitor explicitly
 // agrees when asked. No capture happens before this point.
 window.addEventListener('load', function() {
-  if (!window.XyliumBF) return;
-  var consented = window.confirm(
-    'This site uses behavioural analytics for fraud protection ' +
-    '(mouse/typing patterns, device and network info). Allow this?'
-  );
-  if (consented) {
+  if (window.XyliumBF && typeof window.XyliumBF.grantConsent === 'function') {
     window.XyliumBF.grantConsent();
-  } else {
-    console.log('[XyliumBF v2] user declined consent — capture will not start');
   }
 });
 </script>
