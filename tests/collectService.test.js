@@ -2,9 +2,19 @@
 
 jest.mock('../src/models/EventStores');
 jest.mock('../src/models/Session');
+// ingest() also writes canonical events through the active adapter; stub it so
+// these unit tests exercise the Mongo bucket path without a live database.
+jest.mock('../src/models/EventBatch');
+jest.mock('../src/ipIntelService', () => ({ onUserIdentified: jest.fn().mockResolvedValue() }));
+jest.mock('../src/config/database-registry', () => {
+  const adapter = { saveEvents: jest.fn().mockResolvedValue({}), linkSessionEvents: jest.fn().mockResolvedValue({}) };
+  return { getActiveType: () => 'mongodb', getActiveAdapter: () => adapter };
+});
 
 const { LoginEvent, SessionEvent, PaymentEvent } = require('../src/models/EventStores');
 const Session = require('../src/models/Session');
+const EventBatch = require('../src/models/EventBatch');
+const mongoose = require('mongoose');
 const { ingest, attachUserId, splitEvents, BadRequestError } = require('../src/collectService');
 
 function makeDto(overrides = {}) {
@@ -29,6 +39,15 @@ beforeEach(() => {
   }
   mockExistingSession(null);
   Session.updateOne = jest.fn().mockResolvedValue({});
+  // Behave as if Mongo is connected so ingest() reads the existing session.
+  // (readyState is a non-configurable getter over _readyState.)
+  mongoose.connection._readyState = 1;
+  EventBatch.create = jest.fn().mockResolvedValue({});
+  EventBatch.updateMany = jest.fn().mockResolvedValue({});
+});
+
+afterAll(() => {
+  mongoose.connection._readyState = 0;
 });
 
 describe('ingest() validation', () => {

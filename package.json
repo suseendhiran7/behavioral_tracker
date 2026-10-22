@@ -9,7 +9,8 @@
     "dev": "node --watch src/server.js",
     "test": "jest --runInBand && node --test --test-concurrency=1 tests/analytics.test.js tests/dual-database.test.js",
     "test:jest": "jest --runInBand",
-    "test:node": "node --test --test-concurrency=1 tests/analytics.test.js tests/dual-database.test.js"
+    "test:node": "node --test --test-concurrency=1 tests/analytics.test.js tests/dual-database.test.js",
+    "pg:columns": "node scripts/pg-sdk-columns.js"
   },
   "dependencies": {
     "acorn": "^8.18.0",

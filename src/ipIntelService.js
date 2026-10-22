@@ -7,6 +7,7 @@ const { isPrivateIp } = require('./ipIntel/privateIp');
 const NetworkIntel = require('./models/NetworkIntel');
 const UserGeoHistory = require('./models/UserGeoHistory');
 const Session = require('./models/Session');
+const { pgAppStore, pgEventStore, isPostgresActive } = require('./database/active-store');
 
 const EMPTY = { country: null, timezone: null, isVpn: null, isProxy: null, isDatacenter: null, isTor: null };
 
@@ -72,7 +73,8 @@ async function classifyIp(ip, ctx = {}) {
 }
 
 function dbReady() {
-  return mongoose.connection.readyState === 1;
+  // Mongo is only used when it is the active database.
+  return !isPostgresActive() && mongoose.connection.readyState === 1;
 }
 
 /**
@@ -83,6 +85,15 @@ function dbReady() {
 async function evaluateNewCountry(intelDoc, userId) {
   if (!intelDoc || !intelDoc.country || !userId) return null;
   if (intelDoc.evaluatedForUserId === userId) return intelDoc.isNewCountry; // already done
+
+  const pg = pgAppStore();
+  if (pg) {
+    const known = await pg.getUserCountries(intelDoc.tenantId, userId);
+    const isNew = known.length > 0 ? !known.includes(intelDoc.country) : null;
+    await pg.markNetworkIntelEvaluated(intelDoc.id, userId, isNew);
+    await pg.addUserCountry(intelDoc.tenantId, userId, intelDoc.country);
+    return isNew;
+  }
 
   const history = await UserGeoHistory.findOne({ tenantId: intelDoc.tenantId, userId }).lean();
   const known = history ? history.countries : [];
@@ -107,7 +118,18 @@ async function lookupForSession({ tenantId, appId, sessionId, ip, userAgent, use
   const d = result.data;
   let isNewCountry = null;
 
-  if (sessionId && ip && dbReady()) {
+  const pg = pgAppStore();
+  if (pg && sessionId && ip) {
+    try {
+      const doc = await pg.upsertNetworkIntel({ tenantId, appId, sessionId, ip, data: d, provider: result.provider, source: result.source });
+      const session = await pgEventStore().getSession(sessionId);
+      if (session && session.userId && session.tenantId === tenantId) {
+        isNewCountry = await evaluateNewCountry(doc, session.userId);
+      }
+    } catch (err) {
+      console.warn('[ip-intel] failed to record network intel', err.message);
+    }
+  } else if (sessionId && ip && dbReady()) {
     try {
       const doc = await NetworkIntel.findOneAndUpdate(
         { sessionId, ip },
@@ -153,6 +175,12 @@ async function lookupForSession({ tenantId, appId, sessionId, ip, userAgent, use
  * user — fills in isNewCountry for every IP recorded on that session.
  */
 async function onUserIdentified(sessionId, userId) {
+  const pg = pgAppStore();
+  if (pg) {
+    const docs = await pg.findNetworkIntelWithCountry(sessionId);
+    for (const doc of docs) await evaluateNewCountry(doc, userId);
+    return;
+  }
   if (!dbReady()) return;
   const docs = await NetworkIntel.find({ sessionId, country: { $ne: null } }).lean();
   for (const doc of docs) await evaluateNewCountry(doc, userId);

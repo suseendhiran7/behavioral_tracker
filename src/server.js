@@ -6,8 +6,13 @@ const { COLLECTIONS } = require('./models/EventStores');
 const { startForwardWorker } = require('./forward/worker');
 
 async function main() {
-  // Connect Mongoose
-  try {
+  const activeDb = (process.env.ACTIVE_DATABASE || 'mongodb').toLowerCase();
+  const usePostgres = activeDb === 'postgresql' || activeDb === 'postgres';
+
+  // Connect Mongoose only when MongoDB is the active database. With PostgreSQL
+  // active nothing is stored in Mongo (if an admin switches to MongoDB later,
+  // the Mongo adapter connects then).
+  if (!usePostgres) try {
     await mongoose.connect(config.mongoUri);
     console.log(`[XyliumIngestion] connected to Mongo`);
 
@@ -25,7 +30,7 @@ async function main() {
 
   // Initialize Dual Database Registry with default active database in code (mongodb)
   try {
-    let db = process.env.ACTIVE_DATABASE || 'mongodb';
+    const db = usePostgres ? 'postgresql' : 'mongodb';
     await databaseRegistry.initialize(db);
     const activeAdapter = databaseRegistry.getActiveAdapter();
     const health = await activeAdapter.healthCheck();
@@ -38,6 +43,25 @@ async function main() {
     console.error(`[server] Active database initialization error: ${err.message}`);
   }
 
+  // PostgreSQL version of the Mongo TTL index: purge raw event rows older than
+  // RAW_TTL_DAYS from login_/session_/payment_events and event_batches, hourly.
+  let retentionTimer = null;
+  if (config.rawTtlDays > 0) {
+    const purge = async () => {
+      if (databaseRegistry.getActiveType() !== 'postgresql') return;
+      try {
+        const res = await databaseRegistry.getActiveAdapter().getAppStore().purgeRawOlderThan(config.rawTtlDays);
+        const total = Object.values(res).reduce((a, b) => a + b, 0);
+        if (total) console.log(`[retention] purged ${total} PostgreSQL row(s) older than ${config.rawTtlDays} day(s)`, res);
+      } catch (err) {
+        console.warn('[retention] PostgreSQL purge failed:', err.message);
+      }
+    };
+    purge();
+    retentionTimer = setInterval(purge, 60 * 60 * 1000);
+    retentionTimer.unref();
+  }
+
   const worker = startForwardWorker();
 
   const app = createApp();
@@ -48,6 +72,7 @@ async function main() {
   const shutdown = async (signal) => {
     console.log(`[server] received ${signal}, shutting down...`);
     server.close();
+    if (retentionTimer) clearInterval(retentionTimer);
     await worker.close();
     await databaseRegistry.shutdownAll();
     process.exit(0);

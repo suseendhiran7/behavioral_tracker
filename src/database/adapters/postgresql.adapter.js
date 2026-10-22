@@ -1,6 +1,8 @@
 const { Pool } = require('pg');
 const EventRepository = require('../interfaces/event.repository');
 const { normalizeEvent } = require('../schema/event.schema');
+const PgEventStore = require('../postgres/pg-event-store');
+const PgAppStore = require('../postgres/pg-app-store');
 
 class PostgreSQLAdapter extends EventRepository {
   constructor(config = {}, customPool = null) {
@@ -19,6 +21,21 @@ class PostgreSQLAdapter extends EventRepository {
     this.pool = customPool;
     this.isConnected = false;
     this.activeRequests = 0;
+    // login_events / session_events / payment_events (one column per SDK field).
+    // Takes a pool getter because connect() may swap in the embedded engine.
+    this.eventStore = new PgEventStore(() => this.pool);
+    // Sessions, network intel, geo history, page engagements, payments, batches.
+    this.appStore = new PgAppStore(() => this.pool);
+  }
+
+  /** Column-per-field store for the login / session / payment event split. */
+  getEventStore() {
+    return this.eventStore;
+  }
+
+  /** PostgreSQL tables replacing the remaining Mongo collections. */
+  getAppStore() {
+    return this.appStore;
   }
 
   async connect() {
@@ -173,6 +190,13 @@ class PostgreSQLAdapter extends EventRepository {
       CREATE INDEX IF NOT EXISTS idx_events_tenant_session_seq ON events (tenant_id, session_id, sequence_number ASC);
     `;
     await client.query(ddl);
+
+    // login_events / session_events / payment_events / xylium_sessions.
+    // Reset first: after a fallback to the embedded engine this is a new DB.
+    this.eventStore.ready = null;
+    await this.eventStore.ensureSchema(client);
+    this.appStore.ready = null;
+    await this.appStore.ensureSchema(client);
   }
 
   async disconnect() {
@@ -692,6 +716,8 @@ class PostgreSQLAdapter extends EventRepository {
       ssl: !!this.config.ssl,
       connected: this.isConnected,
       activeRequests: this.activeRequests,
+      eventTables: this.eventStore.describe(),
+      appTables: this.appStore.describe(),
       pool: {
         totalCount: this.pool?.totalCount || 0,
         idleCount: this.pool?.idleCount || 0,

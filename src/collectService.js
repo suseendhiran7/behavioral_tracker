@@ -5,6 +5,7 @@ const EventBatch = require('./models/EventBatch');
 const Session = require('./models/Session');
 const ipIntelService = require('./ipIntelService');
 const databaseRegistry = require('./config/database-registry');
+const { pgAppStore } = require('./database/active-store');
 
 class BadRequestError extends Error {
   constructor(message) {
@@ -153,6 +154,111 @@ function firstUserId(events, fallback) {
   return e ? e.userId : fallback || null;
 }
 
+/** The PostgreSQL event store when PostgreSQL is the active database, else null. */
+function activePgEventStore() {
+  if (databaseRegistry.getActiveType() !== 'postgresql') return null;
+  const adapter = databaseRegistry.getActiveAdapter();
+  return adapter && typeof adapter.getEventStore === 'function' ? adapter.getEventStore() : null;
+}
+
+/** Same as toCanonicalEvent's input mapping, shared by both database paths. */
+function canonicalEvents(dto, sessionId, browserUserId) {
+  return dto.events.map((e, idx) =>
+    toCanonicalEvent(e, {
+      idx,
+      sessionId,
+      tenantId: dto.tenantId,
+      clientId: dto.appId,
+      userId: e.userId || browserUserId || null,
+      deviceFingerprint: dto.deviceFingerprint,
+    })
+  );
+}
+
+/**
+ * PostgreSQL version of ingest(): same login / session / payment split and
+ * the same session-phase rules as the Mongo path, but every SDK event becomes
+ * one row with one column per field (see src/database/postgres).
+ */
+async function ingestPostgres(dto, clientIp, sessionId, store) {
+  const existing = await store.getSession(sessionId);
+  const startPhase = existing ? existing.phase || (existing.userId ? 'session' : 'login') : 'login';
+  const knownUserId = existing ? existing.userId : null;
+
+  const { buckets, endPhase, loginUserId, loggedOut } = splitEvents(dto.events, startPhase);
+
+  const identifyEvt = dto.events.find((e) => e.type === 'identify' && !!e.userId);
+  const browserUserId = identifyEvt ? identifyEvt.userId : (loginUserId || knownUserId || null);
+
+  // Keep feeding the canonical `events` table used by /api/events & analytics.
+  await databaseRegistry.getActiveAdapter().saveEvents(canonicalEvents(dto, sessionId, browserUserId));
+
+  // Same userId rules as the Mongo documents, applied per row.
+  const bucketUserId = {
+    login: loginUserId,
+    session: firstUserId(buckets.session, loginUserId || knownUserId),
+    payment: firstUserId(buckets.payment, loginUserId || knownUserId),
+  };
+  const seqOf = new Map(dto.events.map((e, i) => [e, i]));
+  const items = [];
+  for (const bucket of ['login', 'session', 'payment']) {
+    for (const evt of buckets[bucket]) {
+      items.push({
+        evt,
+        bucket,
+        seq: seqOf.get(evt),
+        userId: evt.userId || bucketUserId[bucket] || null,
+        category: categoryFor(evt.type || 'unknown_event'),
+      });
+    }
+  }
+
+  const now = new Date();
+  const batchId = store.constructor.newBatchId();
+  const rows = await store.buildRows(items, {
+    tenantId: dto.tenantId,
+    appId: dto.appId,
+    sessionId,
+    deviceFingerprint: dto.deviceFingerprint,
+    clientIp,
+    batchId,
+  });
+  await store.saveBatch({
+    rows,
+    session: {
+      sessionId,
+      tenantId: dto.tenantId,
+      appId: dto.appId,
+      deviceFingerprint: dto.deviceFingerprint,
+      phase: endPhase,
+      now,
+      loggedInAt: loginUserId ? now : null,
+      loggedOutAt: loggedOut ? now : null,
+      eventCount: dto.events.length,
+    },
+  });
+
+  // Batch record (PostgreSQL version of the Mongo event_batches archive). The
+  // events themselves are already stored column-by-column above, linked by batch_id.
+  await pgAppStore()
+    .insertEventBatch({
+      batchId,
+      tenantId: dto.tenantId,
+      appId: dto.appId,
+      sessionId,
+      userId: browserUserId,
+      deviceFingerprint: dto.deviceFingerprint,
+      eventCount: dto.events.length,
+      clientIp,
+    })
+    .catch((err) => console.warn('[collect] event_batches insert warning:', err.message));
+
+  // Server-side identify wins: don't overwrite a userId that is already set.
+  if (loginUserId && !knownUserId) {
+    await attachUserId(sessionId, loginUserId, 'browser', { setPhase: false });
+  }
+}
+
 /**
  * Ingest one SDK batch: split it by session phase and store each part in
  * login_events / session_events / payment_events.
@@ -163,6 +269,12 @@ async function ingest(dto, clientIp) {
   }
 
   const sessionId = deriveSessionId(dto.events);
+
+  // PostgreSQL active -> login_events / session_events / payment_events tables
+  // (one column per SDK field). MongoDB active -> the collections below.
+  const pgStore = activePgEventStore();
+  if (pgStore) return ingestPostgres(dto, clientIp, sessionId, pgStore);
+
   let existing = null;
   if (mongoose.connection && mongoose.connection.readyState === 1) {
     try {
@@ -291,6 +403,21 @@ async function attachUserId(sessionId, userId, source, { setPhase = true } = {})
     }
   }
 
+  const pgStore = activePgEventStore();
+  if (pgStore) {
+    const { backfilled } = await pgStore.attachUser(sessionId, userId, source, { setPhase });
+    console.log(
+      `[collect] stitched userId=${userId} (${source}) onto session ${sessionId}; backfilled ${backfilled} login_events row(s) [postgresql]`
+    );
+    await pgAppStore().setEventBatchUser(sessionId, userId).catch(() => {});
+    try {
+      await ipIntelService.onUserIdentified(sessionId, userId);
+    } catch (err) {
+      console.warn('[collect] new-country evaluation failed', err.message);
+    }
+    return;
+  }
+
   const $set = { userId, identifiedBy: source };
   if (setPhase) {
     $set.phase = 'session';
@@ -314,4 +441,4 @@ async function attachUserId(sessionId, userId, source, { setPhase = true } = {})
   }
 }
 
-module.exports = { ingest, attachUserId, splitEvents, toCanonicalEvent, BadRequestError };
+module.exports = { ingest, attachUserId, splitEvents, toCanonicalEvent, categoryFor, BadRequestError };

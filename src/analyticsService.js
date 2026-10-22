@@ -4,6 +4,13 @@ const BehaviourSession = require('./models/BehaviourSession');
 const PageEngagement = require('./models/PageEngagement');
 const PaymentRecord = require('./models/PaymentRecord');
 const databaseRegistry = require('./config/database-registry');
+const { pgAppStore, mongoActiveAndReady } = require('./database/active-store');
+
+const paging = (page, limit, dflt, max) => {
+  const safeLimit = Math.max(1, Math.min(Number(limit) || dflt, max));
+  const safePage = Math.max(1, Number(page) || 1);
+  return { safeLimit, safePage, skip: (safePage - 1) * safeLimit };
+};
 
 class AnalyticsService {
   /**
@@ -188,8 +195,14 @@ class AnalyticsService {
       }
     }
 
-    // Upsert sessions if Mongo is available
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
+    const pg = pgAppStore();
+    if (pg) {
+      for (const [, sData] of sessionUpdates.entries()) {
+        await pg.upsertSessionFromEvents({ ...sData, pageCount: sData.routes.size }, now, clientIp);
+      }
+      for (const pe of pageEngagements) await pg.upsertPageEngagement(pe);
+    } else if (mongoActiveAndReady()) {
+      // Upsert sessions in Mongo
       for (const [, sData] of sessionUpdates.entries()) {
         await BehaviourSession.updateOne(
           { sessionId: sData.sessionId },
@@ -260,6 +273,20 @@ class AnalyticsService {
     const now = startedAt || new Date();
     const effectiveUserId = authenticatedUser && authenticatedUser.userId ? authenticatedUser.userId : null;
 
+    const pg = pgAppStore();
+    if (pg) {
+      const session = await pg.startSession({
+        sessionId,
+        tenantId: tenantId || (authenticatedUser && authenticatedUser.tenantId) || 'default',
+        anonymousId,
+        startedAt: now,
+        deviceMetadata: deviceMetadata || {},
+        ipAddress,
+        userId: effectiveUserId,
+      });
+      return { ok: true, session };
+    }
+
     const session = await BehaviourSession.findOneAndUpdate(
       { sessionId },
       {
@@ -288,6 +315,11 @@ class AnalyticsService {
    */
   async endSession({ sessionId, endedAt, summary }) {
     const now = endedAt || new Date();
+    const pg = pgAppStore();
+    if (pg) {
+      const session = await pg.endSession({ sessionId, endedAt: now, summary });
+      return { ok: true, session };
+    }
     const session = await BehaviourSession.findOneAndUpdate(
       { sessionId },
       {
@@ -309,6 +341,31 @@ class AnalyticsService {
    */
   async linkSession({ sessionId, userId, anonymousId }) {
     const now = new Date();
+
+    const pg = pgAppStore();
+    if (pg) {
+      const session = await pg.linkSession({ sessionId, userId, anonymousId, now });
+      const adapter = databaseRegistry.getActiveAdapter();
+      const linkRes = await adapter.linkSessionEvents(sessionId, userId, 'default');
+      const backfilledCount = linkRes.modifiedCount;
+      await pg.backfillPageEngagementUser(sessionId, userId);
+      // Audit event for identity linking (same as the Mongo path).
+      await adapter.saveEvents([{
+        eventId: `link_${sessionId}_${Date.now()}`,
+        sessionId,
+        userId,
+        anonymousId: anonymousId || null,
+        tenantId: session ? (session.tenantId || 'default') : 'default',
+        eventName: 'session_linked',
+        eventCategory: 'session',
+        timestamp: now,
+        serverReceivedAt: now,
+        sanitizedRoute: '/auth/login',
+        properties: { linkedAt: now.toISOString(), backfilledEventsCount: backfilledCount },
+        device: session ? (session.deviceMetadata || {}) : {},
+      }]);
+      return { ok: true, sessionId, userId, backfilledCount };
+    }
 
     // 1. Update session record
     const session = await BehaviourSession.findOneAndUpdate(
@@ -441,6 +498,15 @@ class AnalyticsService {
    * Query sessions for a user.
    */
   async getUserSessions({ userId, page = 1, limit = 20 }) {
+    const pg = pgAppStore();
+    if (pg) {
+      const { safeLimit, safePage, skip } = paging(page, limit, 20, 100);
+      const { sessions, total } = await pg.listUserSessions(userId, { skip, limit: safeLimit });
+      return {
+        sessions,
+        pagination: { total, page: safePage, limit: safeLimit, totalPages: Math.ceil(total / safeLimit) },
+      };
+    }
     const query = { userId };
     const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 100));
     const safePage = Math.max(1, Number(page) || 1);
@@ -474,7 +540,25 @@ class AnalyticsService {
     const effectiveTenantId = tenantId || 'default';
     if (activeType === 'postgresql') {
       const activeAdapter = databaseRegistry.getActiveAdapter();
-      return await activeAdapter.getUserSummary(userId, effectiveTenantId);
+      const base = await activeAdapter.getUserSummary(userId, effectiveTenantId);
+      const pg = pgAppStore();
+      if (!pg) return base;
+      const [sessions, pageEngagements, payments] = await Promise.all([
+        pg.listAllUserSessions(userId),
+        pg.listUserPageEngagements(userId),
+        pg.listUserPayments(userId),
+      ]);
+      return {
+        ...base,
+        ...(sessions.length
+          ? {
+            totalSessions: sessions.length,
+            firstSeenAt: sessions[sessions.length - 1].startedAt,
+            lastSeenAt: sessions[0].lastActivityAt,
+          }
+          : {}),
+        ...summariseEngagementAndPayments(pageEngagements, payments),
+      };
     }
 
     const [eventsCount, sessions, pageEngagements, payments, categoryStats] = await Promise.all([
@@ -536,7 +620,8 @@ class AnalyticsService {
    * Get events for a specific session with authorization check.
    */
   async getSessionEvents({ sessionId, page = 1, limit = 100, authenticatedUser }) {
-    const session = await BehaviourSession.findOne({ sessionId }).lean();
+    const pg = pgAppStore();
+    const session = pg ? await pg.findSession(sessionId) : await BehaviourSession.findOne({ sessionId }).lean();
     if (!session) {
       return { session: null, events: [], pagination: { total: 0, page: 1, limit, totalPages: 0 } };
     }
@@ -597,6 +682,14 @@ class AnalyticsService {
    */
   async verifyPayment(dto) {
     const now = new Date();
+
+    const pg = pgAppStore();
+    if (pg) {
+      const payment = await pg.upsertPayment(dto, now);
+      await databaseRegistry.getActiveAdapter().saveEvents([paymentEvent(dto, now)]);
+      await pg.setSessionPaymentStatus(dto.sessionId, dto.status);
+      return { ok: true, payment };
+    }
 
     const payment = await PaymentRecord.findOneAndUpdate(
       { paymentId: dto.paymentId },
@@ -668,7 +761,12 @@ class AnalyticsService {
 
     let peDelCount = 0;
     let payDelCount = 0;
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
+    const pg = pgAppStore();
+    if (pg) {
+      peDelCount = await pg.deleteUserPageEngagements(userId);
+      payDelCount = await pg.deleteUserPayments(userId);
+      await pg.anonymizeUserSessions(userId);
+    } else if (mongoose.connection && mongoose.connection.readyState === 1) {
       const [peDel, payDel] = await Promise.all([
         PageEngagement.deleteMany({ userId }),
         PaymentRecord.deleteMany({ userId }),
@@ -685,6 +783,59 @@ class AnalyticsService {
       deletedPayments: payDelCount,
     };
   }
+}
+
+/** Same payment event the Mongo path creates. */
+function paymentEvent(dto, now) {
+  return {
+    eventId: `pay_${dto.paymentId}_${Date.now()}`,
+    sessionId: dto.sessionId,
+    userId: dto.userId,
+    tenantId: dto.tenantId || 'default',
+    eventName: `payment_${dto.status}`,
+    eventCategory: 'payment',
+    timestamp: now,
+    serverReceivedAt: now,
+    sanitizedRoute: '/checkout/payment',
+    properties: {
+      paymentId: dto.paymentId,
+      orderId: dto.orderId,
+      amount: dto.amount,
+      currency: dto.currency || 'USD',
+      status: dto.status,
+      paymentMethodCategory: dto.paymentMethodCategory,
+      failureReason: dto.failureReason || null,
+      serverVerified: true,
+    },
+  };
+}
+
+/** pageVisits / engagement / paymentSummary, same shape as the Mongo summary. */
+function summariseEngagementAndPayments(pageEngagements, payments) {
+  const pageVisits = {};
+  let totalActiveDurationMs = 0;
+  let maxOverallScrollDepth = 0;
+  for (const pe of pageEngagements) {
+    pageVisits[pe.sanitizedRoute] = (pageVisits[pe.sanitizedRoute] || 0) + 1;
+    totalActiveDurationMs += pe.activeDurationMs || 0;
+    maxOverallScrollDepth = Math.max(maxOverallScrollDepth, pe.maxScrollDepth || 0);
+  }
+  return {
+    pageVisits,
+    engagement: {
+      totalActiveDurationMs,
+      maxScrollDepth: maxOverallScrollDepth,
+      recordedPageEngagementsCount: pageEngagements.length,
+    },
+    paymentSummary: {
+      totalTransactions: payments.length,
+      succeeded: payments.filter((p) => p.status === 'succeeded').length,
+      failed: payments.filter((p) => p.status === 'failed').length,
+      pending: payments.filter((p) => p.status === 'pending').length,
+      cancelled: payments.filter((p) => p.status === 'cancelled').length,
+      recentRecords: payments.slice(0, 5),
+    },
+  };
 }
 
 module.exports = new AnalyticsService();

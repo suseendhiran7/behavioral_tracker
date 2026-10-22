@@ -1,5 +1,6 @@
 const BehaviourEvent = require('./models/BehaviourEvent');
 const BehaviourSession = require('./models/BehaviourSession');
+const { pgAppStore } = require('./database/active-store');
 
 const databaseRegistry = require('./config/database-registry');
 
@@ -108,7 +109,8 @@ class RiskService {
    * Evaluate session risk against legitimate baselines and behavioral anomaly patterns.
    */
   async evaluateSessionRisk(sessionId) {
-    const session = await BehaviourSession.findOne({ sessionId }).lean();
+    const pg = pgAppStore();
+    const session = pg ? await pg.findSession(sessionId) : await BehaviourSession.findOne({ sessionId }).lean();
     if (!session) {
       return { error: 'session not found' };
     }
@@ -178,11 +180,13 @@ class RiskService {
 
     // Signal 5: Compare against user historical baseline if user authenticated
     if (session.userId) {
-      const historicalSessions = await BehaviourSession.find({
-        userId: session.userId,
-        sessionId: { $ne: sessionId },
-        status: { $in: ['active', 'ended'] },
-      }).limit(10).lean();
+      const historicalSessions = pg
+        ? await pg.findHistoricalSessions(session.userId, sessionId, 10)
+        : await BehaviourSession.find({
+          userId: session.userId,
+          sessionId: { $ne: sessionId },
+          status: { $in: ['active', 'ended'] },
+        }).limit(10).lean();
 
       if (historicalSessions.length >= 3) {
         // We have an established baseline
@@ -247,6 +251,10 @@ class RiskService {
     };
 
     // Persist risk assessment onto session
+    if (pg) {
+      await pg.saveRiskSummary(sessionId, { riskScore, riskLevel, confidence, evaluatedAt: evaluation.evaluatedAt, signals });
+      return evaluation;
+    }
     await BehaviourSession.updateOne(
       { sessionId },
       {
