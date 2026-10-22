@@ -245,7 +245,11 @@ router.get('/users/:userId/risk', requireUserOrAdmin('userId'), async (req, res,
     const { userId } = req.params;
     const BehaviourSession = require('../models/BehaviourSession');
     const riskService = require('../riskService');
-    const latestSession = await BehaviourSession.findOne({ userId }).sort({ startedAt: -1 }).lean();
+    const { pgAppStore } = require('../database/active-store');
+    const pg = pgAppStore();
+    const latestSession = pg
+      ? await pg.findLatestUserSession(userId)
+      : await BehaviourSession.findOne({ userId }).sort({ startedAt: -1 }).lean();
     if (!latestSession) {
       return res.status(404).json({ error: 'no sessions found for user' });
     }

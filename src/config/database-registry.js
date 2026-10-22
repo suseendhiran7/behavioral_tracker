@@ -19,7 +19,9 @@ class DatabaseRegistry {
    */
   async initialize(initialType = null, customConnections = {}) {
     const config = loadDatabaseConfig();
-    const targetType = initialType || 'mongodb';
+    const raw = String(initialType || 'mongodb').toLowerCase().trim();
+    // Accept the same aliases as the adapter factory ('postgres', 'mongo').
+    const targetType = raw === 'postgres' ? 'postgresql' : raw === 'mongo' ? 'mongodb' : raw;
 
     // If an adapter is already active and healthy, don't reinitialize unless forced
     if (this.initialized && this.activeAdapter && this.activeType === targetType) {
